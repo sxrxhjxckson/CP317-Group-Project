@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Abia Patient Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fb;
+            margin: 40px;
+        }
+
+        h1 {
+            color: #1f2937;
+        }
+
+        .card {
+            background: white;
+            padding: 18px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        }
+
+        .stable {
+            color: green;
+            font-weight: bold;
+        }
+
+        .review {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .alert {
+            color: red;
+            font-weight: bold;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: #2563eb;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Patient Monitoring Dashboard</h1>
+    <p>This dashboard shows patient health information and highlights patients who may need attention.</p>
+
+    {% for patient in patients %}
+        <div class="card">
+            <h2>{{ patient.name }}</h2>
+            <p><strong>Age:</strong> {{ patient.age }}</p>
+            <p><strong>Condition:</strong> {{ patient.condition }}</p>
+            <p><strong>Heart Rate:</strong> {{ patient.heart_rate }} bpm</p>
+
+            {% if patient.status == "Stable" %}
+                <p>Status: <span class="stable">{{ patient.status }}</span></p>
+            {% elif patient.status == "Needs Review" %}
+                <p>Status: <span class="review">{{ patient.status }}</span></p>
+            {% else %}
+                <p>Status: <span class="alert">{{ patient.status }}</span></p>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <a href="/">Back to Login</a>
+
+</body>
+</html>
