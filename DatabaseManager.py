@@ -197,6 +197,23 @@ class DatabaseManager():
         conn.commit()
         conn.close()
 
+    def get_or_create_medication_id(self, name):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT Medication_Id FROM mEDICATIONS WHERE Medication_Name = ?", (name,))
+        row = cursor.fetchone()
+        if row:
+            med_id = row[0]
+        else:
+            cursor.execute("""
+            INSERT INTO MEDICATIONS (Medication_Name, Medication_Description, Recommended_Dosage)
+                           VALUES (?, 'Prescribed via dashboard', 'As specified by script')
+                           """, (name,))
+            conn.commit()
+            med_id = cursor.lastrowid
+        conn.close()
+        return med_id
+    
     def add_prescription(self, pat_id, prof_id, med_id, dosage, pdate, edate, ref):
         conn = sqlite3.connect(self.path)
         cursor = conn.cursor()
@@ -306,6 +323,35 @@ class DatabaseManager():
                 'first_name': 'Unknown',
                 'last_name': 'Professional'
             }
+    def get_patients_by_professional(self, professional_id, search_query=None):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        if search_query:
+            cursor.execute("""
+            SELECT DISTINCT p.Patient_Id, p.First_Name, p.Last_Name, p.Health_Card_Num, p.Insurance_Num
+                        FROM PATIENTS p
+                        WHERE (p.Patient_Id IN (
+                            SELECT Patient_Id FROM PRESCRIPTIONS WHERE Professional_Id = ?
+                            UNION
+                            SELECT Patient_Id FROM APPOINTMENTS WHERE Professional_Id = ?
+                            UNION
+                            SELECT Patient_Id FROM TEST_RESULTS WHERE Professional_Id = ?
+                        )) AND (p.First_Name LIKE ? OR P.Last_Name LIKE ?)
+                           """, (professional_id, professional_id, professional_id, f"%{search_query}%", f"%{search_query}%"))
+        else:
+            cursor.execute("""
+            SELECT DISTINCT p.Patient_Id, p.First_Name, p.Last_Name, p.Health_Card_Num, p.Insurance_Num
+                        FROM PATIENTS p
+                        WHERE p.Patient_Id IN (
+                        SELECT Patient_Id FROM PRESCRIPTIONS WHERE Professional_Id = ?
+                        UNION
+                        SELECT Patient_Id FROM APPOINTMENTS WHERE Professional_Id = ?
+                        UNION
+                        SELECT Patient_Id FROM TEST_RESULTS WHERE Professional_Id = ?
+                        )""", (professional_id, professional_id, professional_id))
+        rows = cursor.fetchall()
+        conn.close()
+        return [{'id': r[0], 'first_name': r[1], 'last_name': r[2], 'health_card': r[3], 'insurance_num': r[4]} for r in rows]
     
     def get_all_patients(self):
         conn = sqlite3.connect(self.path)
@@ -315,21 +361,37 @@ class DatabaseManager():
         conn.close()
         return[{'id': r[0], 'first_name': r[1], 'last_name': r[2], 'health_card': r[3]} for r in rows]
 
-    def get_patient_prescriptions(self, patient_id):
+    def get_patient_prescriptions(self, patient_id, search_query=None):
         conn = sqlite3.connect(self.path)
         cursor = conn.cursor()
-        cursor.execute("""
+        if search_query:
+            cursor.execute("""
                     SELECT p.Prescription_Id, m.Medication_Name, p.Prescription_Date, p.Dosage
                     FROM PRESCRIPTIONS p
                     JOIN MEDICATIONS m ON p.Medication_Id = m.Medication_Id
-                    WHERE p.Patient_Id = ?
-        """, (patient_id,))
+                    WHERE p.Patient_Id = ? AND m.Medication_Name LIKE ?
+            """, (patient_id, f"%{search_query}%"))
+        else:
+            cursor.execute("""
+                        SELECT p.Prescription_Id, m.Medication_Name, p.Prescription_Date, p.Dosage
+                        FROM PRESCRIPTIONS p
+                        JOIN MEDICATIONS m ON p.Medication_Id = m.Medication_Id
+                        WHERE p.Patient_Id = ?
+            """, (patient_id,))
         rows = cursor.fetchall()
         conn.close()
         return [{
             'id': r[0], 'med_name': r[1], 'date': r[2], 'dosage': r[3]
         } for r in rows]
     
+    def get_all_medications(self):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT Medication_Id, Medication_Name, Medication_Description FROM MEDICATIONS")
+        rows = cursor.fetchall()
+        conn.close()
+        return [{'id': r[0], 'name': r[1], 'desc': r[2]} for r in rows]
+
     def get_prescription_details(self, prescription_id):
         conn = sqlite3.connect(self.path)
         cursor = conn.cursor()
