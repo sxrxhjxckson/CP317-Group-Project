@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physician - Prescriptions</title>
+    <style>
+        :root {
+            --bg: #eef1f6;
+            --card: #ffffff;
+            --ink: #1f2430;
+            --ink-soft: #5a6273;
+            --line: #d9dee8;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --accent-soft: #ede9fe;
+            --field: #f6f7fb;
+            --success: #10b981;
+            --danger: #b42318;
+            --danger-soft: #fde7e6;
+            --nav-bg: #6366f1;
+            --nav-active: #3b82f6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Header */
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--line);
+            background: var(--bg);
+            position: relative;
+        }
+        .brand-menu-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px; 
+            text-decoration: none;
+            color: inherit;
+        }
+        .brand svg { display: block; }
+        .brand h1 {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+        .icon-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            padding: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--ink-soft);
+            transition: background 0.15s, color 0.15s;
+        }
+        .icon-btn:hover {
+            background: var(--field);
+            color: var(--ink);
+        }
+        .icon-btn:focus-visible {
+            outline: 2px solid var(--accent);
+        }
+        .hamburger-btn {
+            align-self: flex-start;
+            padding: 6px 8px;
+            margin-left: -4px;
+        }
+        .meta-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-top: 4px;
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+        /* Drop down menu */
+        .sidebar-dropdown {
+            position: absolute;
+            top: 64px;
+            left: 24px;
+            width: 230px;
+            background-color: var(--nav-bg);
+            border-radius: 6px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .hidden-menu {
+            display: none;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 20px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.15s;
+        }
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        .nav-link .icon {
+            font-size: 1.15rem;
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+        }
+        .nav-link.active-page {
+            background-color: var(--nav-active);
+        }        
+        .dashboard-container{
+            display: flex;
+            gap: 20px;
+            padding: 32px 24px;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            flex: 1;
+        }
+        .column{
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 20px;
+            background: var(--card);
+            overflow-y: auto;
+            max-height: 78vh;
+        }
+        .column h3 {
+            font-size: 1.05rem;
+            color: var(--ink);
+            margin-bottom: 16px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 8px;
+        }
+        .col-patients{
+            flex: 1;
+            min-width: 280px;
+        }
+        .col-prescriptions{
+            flex: 1.3;
+            min-width: 340px;
+        }
+        .col-details{
+            flex: 1.5;
+            min-width: 320px;
+        }
+        .list-item{
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            border-bottom: 1px dashed var(--line);
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--ink);
+            display: block;
+            transition: background 0.15s;
+        }
+        .list-item:hover { background-color: var(--field); }
+        .active-selection {
+            background-color: var(--accent-soft) !important;
+            border: 1px solid var(--line);
+            color: var(--accent);
+        }
+        .form-group{ margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: var(--ink-soft);
+            text-transform: uppercase;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--field);
+            color: var(--ink);
+            font-size: 0.9rem;
+        }
+        .form-group input:focus {
+            outline: 2px solid var(--accent);
+            background: #ffffff;
+        }
+        .btn-submit {
+            background-color: var(--accent);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.15s;
+        }
+        .btn-submit:hover {
+            background-color: var(--accent-hover);
+        }
+    </style>
+</head>
+<body>
+    <header class="dash-header">
+        <div class="brand-menu-container">
+            <div class="brand">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="2" y="2" width="20" height="20" rx="5" fill="#2f6df6"/>
+                    <path d="M12 17.5s-4.2-2.8-4.2-5.6a2.3 2.3 0 0 1 4.2-1.3 2.3 2.3 0 0 1 4.2 1.3c0 2.8-4.2 5.6-4.2 5.6Z" fill="#ffffff"/>
+                </svg>
+                <h1>CarePath</h1>
+            </div>
+            <button class="icon-btn hamburger-btn" id="hamburgerMenuTrigger" aria-label="Toggle Navigation Menu" onclick="toggleNavigationMenu()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="meta-actions">
+            <button class="icon-btn" aria-label="View Notifications">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+            </button>
+            <div class="user-profile">
+                <span>Dr. {{ professional_name }}</span>
+                <button class="icon-btn" aria-label="user Account Menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div id="sidebarDropdownMenu" class="sidebar-dropdown hidden-menu">
+            <a href="/professional" class="nav-link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline> 
+                </svg>
+                Dashboard
+            </a>
+            <a href="/professional/patient-records" class="nav-link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 02 2h12a2 2 0 0 02-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Patient Records
+            </a>
+            <a href="/professional/schedule" class="nav-link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Schedule
+            </a>
+            <a href="/professional/prescriptions" class="nav-link active-page">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 11h4m-2-2v4m-2-7.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2.5M6 6h12v11a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V6z"></path>
+                </svg>
+                Prescriptions
+            </a>
+            <a href="/professional/analytics" class="nav-link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Analytics
+            </a>
+            <a href="/professional/messages" class="nav-link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Messages
+            </a>
+        </div>
+    </header>
+    <div class="dashboard-container">
+        <div class="column col-patients">
+            <h3>Patients</h3>
+            <div class="list-wrapper">
+                {% for pat in patients %}
+                    <a href="/professional/prescriptions?patient_id={{ pat.id }}"
+                    class="list-item {% if selected_patient_id == pat.id %}active-selection{% endif %}">
+                    <div><strong>{{ pat.name }}</strong></div>
+                    <small style="color: var(--ink-soft)">ID: {{ pat.health_card }}</small>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% if selected_patient_id %}
+        <div class="column col-prescriptions">
+            <h3>Patient Prescriptions</h3>
+            {% if prescriptions %}
+                {% for presc in prescriptions %}
+                    <a href="/professional/prescriptions?patient_id={{ selected_patient_id }}&prescription_id={{ presc.id }}"
+                    class="list-item {% if selected_presc_id == presc.id %}active-selection{% endif %}">
+                    <div><strong>{{ presc.med_name }}</strong></div>
+                    <small style="color: var(--ink-soft); display: block; margin-top: 4px;">Prescribed: {{ presc.date }} | Dosage: {{ presc.dosage }}</small>
+                </a>
+                {% endfor %}
+            {% else %}
+                <p style="color: var(--ink-soft); font-size: 0.9rem; font-style: italic;">No prescription history logged for this patient.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if presc_details %}
+        <div class="column col-details">
+            <h3>Edit Prescription Details</h3>
+            <form action="/professional/prescriptions" method="POST">
+                <input type="hidden" name="prescription_id" value="{{ presc_details.id }}">
+                <input type="hidden" name="patient_id" value="{{ presc_details.patient_id }}">
+                <div class="form-group">
+                    <label>Medication Name</label>
+                    <input type="text" value="{{ presc_details.med_name }}" disabled style="background: var(--line); cursor: not-allowed; color: var(--ink-soft);">
+                </div>
+                <div class="form-group">
+                    <label>Dosage</label>
+                    <input type="text" name="dosage" value="{{ presc_details.dosage }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Expiration Date</label>
+                    <input type="text" name="expiration_date" value="{{ presc_details.expr_date }}" placeholder="YYYY-MM-DD" required>
+                </div>
+                <div class="form-group">
+                    <label>Remaining Refills</label>
+                    <input type="number" name="refills" value="{{ presc_details.refills }}" required>
+                </div>
+                <button type="submit" class="btn-submit">Save Updates</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    <script>
+        function toggleNavigationMenu() {
+            var menu = document.getElementById("sidebarDropdownMenu");
+            if (menu.classList.contains("hidden-menu")) {
+                menu.classList.remove("hidden-menu");
+            } else {
+                menu.classList.add("hidden-menu");
+            }
+        }
+        window.onclick = function(event) {
+            var menu = document.getElementById("sidebarDropdownMenu");
+            var button = document.getElementById("hamburgerMenuTrigger");
+            if (!button.contains(event.target) && !menu.contains(event.target)) {
+                menu.classList.add("hidden-menu");
+            }
+        }
+    </script>
+</body>
+</html>
