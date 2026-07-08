@@ -146,36 +146,40 @@ class DatabaseManager():
     def add_user(self, email, password, user_type):
         conn = sqlite3.connect(self.path)
         cursor = conn.cursor()
+        new_id = None
+        try:
+            cursor.execute("""
+            INSERT OR IGNORE INTO USERS (Email, Password, Account_Type)
+            VALUES (?,?,?)
+            """, (email,password,user_type))
+            conn.commit()
+            new_id = cursor.lastrowid
+        except sqlite3.IntegrityError as e:
+            print(f"User already exists or insertion failed: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
+        return new_id
 
-        cursor.execute("""
-        INSERT OR IGNORE INTO USERS (Email, Password, Account_Type)
-        VALUES (?,?,?)
-        """, (email,password,user_type))
-
-        conn.commit()
-        conn.close()
-
-    def add_patient(self,fname, lname, dob, hcnum, inum):
+    def add_patient(self, pat_id,fname, lname, dob, hcnum, inum):
         conn = sqlite3.connect(self.path)
         cursor = conn.cursor()
-
         cursor.execute("""
-        INSERT OR IGNORE INTO PATIENTS (First_Name, Last_Name, DOB,
+        INSERT OR IGNORE INTO PATIENTS (Patient_Id, First_Name, Last_Name, DOB,
                             Health_Card_Num, Insurance_Num)
-        VALUES (?,?,?,?,?)
-        """, (fname,lname,dob,hcnum,inum))
+        VALUES (?,?,?,?,?,?)
+        """, (pat_id,fname,lname,dob,hcnum,inum))
 
         conn.commit()
         conn.close()
 
-    def add_professional(self, fname, lname, license):
+    def add_professional(self, prof_id, fname, lname, license):
         conn = sqlite3.connect(self.path)
         cursor = conn.cursor()
-
         cursor.execute("""
-        INSERT OR IGNORE INTO PROFESSIONALS (First_Name, Last_Name, Med_License_Num)
-        VALUES (?,?,?)
-        """, (fname,lname,license))
+        INSERT OR IGNORE INTO PROFESSIONALS (Professional_Id, First_Name, Last_Name, Med_License_Num)
+        VALUES (?,?,?,?)
+        """, (prof_id, fname,lname,license))
 
         conn.commit()
         conn.close()
@@ -272,14 +276,183 @@ class DatabaseManager():
         conn = sqlite3.connect(self.path)
         cursor = conn.cursor()
         
-        account_type = 'Invalid'
         cursor.execute("""
-        SELECT Account_Type FROM USERS WHERE Email = ? AND Password = ?
+        SELECT ID, Account_Type FROM USERS WHERE Email = ? AND Password = ?
         """, (email,password))
         result = cursor.fetchone()
         conn.close()
         if result:
-            account_type = result[0]
-            return account_type
+            return result[0], result[1]
         else:
-            return account_type
+            return None, 'Invalid'
+        
+    def get_professional(self, professional_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT First_Name, Last_Name FROM PROFESSIONALS 
+        WHERE Professional_Id = ?
+        """, (professional_id,))
+        result = cursor.fetchone()
+        conn.close()
+        if result:
+            return {
+                'first_name': result[0],
+                'last_name': result[1]
+            }
+        else:
+            return {
+                'first_name': 'Unknown',
+                'last_name': 'Professional'
+            }
+    
+    def get_all_patients(self):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT Patient_Id, First_Name, Last_Name, Health_Card_Num FROM PATIENTS")
+        rows = cursor.fetchall()
+        conn.close()
+        return[{'id': r[0], 'first_name': r[1], 'last_name': r[2], 'health_card': r[3]} for r in rows]
+
+    def get_patient_prescriptions(self, patient_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("""
+                    SELECT p.Prescription_Id, m.Medication_Name, p.Prescription_Date, p.Dosage
+                    FROM PRESCRIPTIONS p
+                    JOIN MEDICATIONS m ON p.Medication_Id = m.Medication_Id
+                    WHERE p.Patient_Id = ?
+        """, (patient_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return [{
+            'id': r[0], 'med_name': r[1], 'date': r[2], 'dosage': r[3]
+        } for r in rows]
+    
+    def get_prescription_details(self, prescription_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("""
+                    SELECT 
+                       p.Prescription_Id, 
+                       m.Medication_Name, 
+                       p.Dosage, 
+                       p.Prescription_Date, 
+                       p.Expiration_Date, 
+                       p.Remaining_Refills, 
+                       p.Patient_Id
+                    FROM PRESCRIPTIONS p
+                    JOIN MEDICATIONS m ON p.Medication_Id = m.Medication_Id
+                    WHERE p.Prescription_Id = ?
+        """, (prescription_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {
+                'id': row[0], 
+                'med_name': row[1], 
+                'dosage': row[2], 
+                'date': row[3], 
+                'expr_date': row[4], 
+                'refills': row[5], 
+                'patient_id': row[6]
+            }
+        return None
+
+    #==================================================
+    #----------DATA UPDATE METHODS------------------
+    #==================================================
+
+    def update_user(self, user_id, email, password):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        UPDATE USERS
+        SET Email = ?, Password = ?
+        WHERE ID = ?
+        """, (email,password,user_id))
+
+        conn.commit()
+        conn.close()
+
+    def update_patient(self,fname, lname, hcnum, inum, pat_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        UPDATE PATIENTS
+        SET First_Name = ?, Last_Name = ?, Health_Card_Num = ?, Insurance_Num = ?
+        WHERE Patient_Id = ?
+        """, (fname,lname,hcnum,inum, pat_id))
+
+        conn.commit()
+        conn.close()
+
+    def update_professional(self, prof_id, fname, lname, license):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        UPDATE PROFESSIONALS
+        SET First_Name = ?, Last_Name = ?, Med_License_Num = ?
+        WHERE Professional_Id = ?
+        """, (fname,lname,license, prof_id))
+
+        conn.commit()
+        conn.close()
+
+    def update_medication(self, med_id, name, desc, dosage):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        UPDATE MEDICATIONS
+        SET Medication_Name = ?, Medication_Description = ?, Recommended_Dosage = ?
+        WHERE Medication_Id = ?
+        """, (name,desc,dosage,med_id))
+
+        conn.commit()
+        conn.close()
+
+    def update_prescription(self, prescrpt_id, dosage, edate, ref):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        UPDATE PRESCRIPTIONS
+        SET Dosage = ?, Expiration_Date = ?, Remaining_Refills = ?
+        WHERE Prescription_Id = ?
+        """, (dosage, edate, ref, prescrpt_id))
+
+        conn.commit()
+        conn.close()
+
+    def update_test_result(self, test_id, status, comments):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        #Status should be 'Pending' or 'Final'
+        cursor.execute("""
+        UPDATE TEST_RESULTS
+        SET Test_Status = ?, Doctor_Comments = ?
+        WHERE Test_Id = ?
+        """, (status, comments, test_id))
+
+        conn.commit()
+        conn.close()
+
+    def update_appointement(self, date, time, status, appt_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        #Status should be 'Requested' or 'Confirmed' or 'Cancelled'
+        cursor.execute("""
+        UPDATE APPOINTMENTS 
+        SET Sched_Date = ?, Sched_Time = ?, Appvl_Status = ?
+        WHERE Appointment_Id = ?
+        """, (date, time, status, appt_id))
+
+        conn.commit()
+        conn.close()
