@@ -369,9 +369,23 @@
                     </div>
                 </form>
             </div>
+            
             <!-- Right side -->
             <div class="panel-card" style="text-align: left;">
-                <h3>Action Items</h3>
+                <h3>Patients</h3>
+                <ul class="item-list">
+                    {% for patient in patients %}
+                    <li>
+                        <a href="/professional/history/{{ patient.id }}"
+                           style="display:inline; margin:0; text-align:left;">
+                            {{ patient.first_name }} {{ patient.last_name }} &rarr; View History
+                        </a>
+                    </li>
+                    {% endfor %}
+                    {% if not patients %}
+                    <li style="color: var(--ink-soft);">No patients assigned.</li>
+                    {% endif %}
+                </ul>
             </div>
         </div>
     </main>

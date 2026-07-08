@@ -19,6 +19,19 @@ current_user_id = -1
 def login_view():
     return render_template("login.html")
 
+@app.route("/professional/schedule")
+def professional_schedule():
+    if current_user_type != "Professional":
+        return "Error: User is not a Professional", 403
+    appointments = dbm.get_appointments_by_professional(current_user_id)
+    pro_data = dbm.get_professional(current_user_id)
+    full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
+    return render_template(
+        "schedule.html",
+        professional_name=full_name,
+        appointments=appointments
+    )
+
 #Login POST functionality
 @app.route("/login", methods=["POST"])
 def login():
@@ -36,6 +49,7 @@ def login():
     if retrieved_type == "Patient":
         current_user_type = "Patient"
         current_user_id = user_id
+        
         return redirect("/patient")
     elif retrieved_type == "Professional":
         current_user_type = "Professional"
@@ -44,6 +58,24 @@ def login():
     else:
         # later the login page can show invalid user
         return render_template("login.html")
+
+
+
+# Patient Medical History Timeline (HIS-001), mwerges prescriptions, results, and appointments chronologically
+@app.route("/professional/history/<int:patient_id>")
+def patient_history(patient_id):
+    if current_user_type != "Professional":
+        return "Error: User is not a Professional", 403
+
+    history = dbm.get_patient_history(patient_id)
+    pro_data = dbm.get_professional(current_user_id)
+    full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
+    return render_template(
+        "history.html",
+        professional_name=full_name,
+        history=history,
+        patient_id=patient_id
+    )
 
 
 
@@ -61,7 +93,10 @@ def professional_view():
         return "Error: User is not a Professional", 403
     pro_data = dbm.get_professional(current_user_id)
     full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
-    return render_template("professional_dash.html", professional_name=full_name)
+    patients = dbm.get_patients_by_professional(current_user_id)
+    return render_template("professional_dash.html",
+                           professional_name=full_name,
+                           patients=patients)
 
 @app.route("/professional/prescriptions", methods=['GET', 'POST'])
 def professional_prescriptions():
@@ -102,6 +137,39 @@ def professional_prescriptions():
         selected_patient_id=selected_patient_id,
         selected_presc_id=selected_presc_id
     )
+@app.route("/professional/schedule/update/<int:appt_id>", methods=["POST"])
+def update_appointment_status(appt_id):
+    if current_user_type != "Professional":
+        return "Unauthorized Access", 403
+
+    status = request.form.get("status")
+
+    # Update the appointment's status in the database
+    dbm.update_appointment_status(appt_id, status)
+
+    # --- Notification flag ---
+    # Find out who this appointment belongs to, then notify the patient
+    # that their appointment status changed (approve / cancel / reschedule).
+    parties = dbm.get_appointment_parties(appt_id)
+    if parties:
+        notice = f"Your appointment status has been updated to: {status}"
+        dbm.add_message(current_user_id, parties['patient_id'], None, notice)
+
+    return redirect("/professional/schedule")
+
+# Reschedule an appointment (APT-002) - updates the date and time
+@app.route("/professional/schedule/reschedule/<int:appt_id>", methods=["POST"])
+def reschedule_appointment(appt_id):
+    if current_user_type != "Professional":
+        return "Unauthorized Access", 403
+
+    new_date = request.form.get("new_date")
+    new_time = request.form.get("new_time")
+
+    # Reuses the existing update method (date, time, status, appt_id)
+    dbm.update_appointement(new_date, new_time, "Confirmed", appt_id)
+
+    return redirect("/professional/schedule")
 
 @app.route("/professional/prescriptions/add", methods=["GET", "POST"])
 def process_add_prescriptions():

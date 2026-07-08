@@ -384,6 +384,24 @@ class DatabaseManager():
             'id': r[0], 'med_name': r[1], 'date': r[2], 'dosage': r[3]
         } for r in rows]
     
+    def get_appointments_by_professional(self, professional_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("""
+                SELECT a.Appointment_Id, p.First_Name, p.Last_Name,
+                a.Sched_Date, a.Sched_Time, a.Appvl_Status, a.Notes
+                FROM APPOINTMENTS a
+                JOIN PATIENTS p ON a.Patient_Id = p.Patient_Id
+                WHERE a.Professional_Id = ?
+                ORDER BY a.Sched_Date, a.Sched_Time
+                """, (professional_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return [{
+            'id': r[0], 'first_name': r[1], 'last_name': r[2],
+            'date': r[3], 'time': r[4], 'status': r[5], 'notes': r[6]
+        } for r in rows]
+    
     def get_all_medications(self):
         conn = sqlite3.connect(self.path)
         cursor = conn.cursor()
@@ -420,6 +438,69 @@ class DatabaseManager():
                 'refills': row[5], 
                 'patient_id': row[6]
             }
+        return None
+    
+    def get_patient_history(self, patient_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        # Prescriptions
+        cursor.execute("""
+            SELECT p.Prescription_Date, m.Medication_Name, p.Dosage
+            FROM PRESCRIPTIONS p
+            JOIN MEDICATIONS m ON p.Medication_Id = m.Medication_Id
+            WHERE p.Patient_Id = ?
+        """, (patient_id,))
+        prescriptions = [{
+            'date': r[0], 'type': 'Prescription',
+            'detail': f"{r[1]} ({r[2]})"
+        } for r in cursor.fetchall()]
+
+        # Test results
+        cursor.execute("""
+            SELECT Date_Conducted, Test_Name, Test_Status
+            FROM TEST_RESULTS
+            WHERE Patient_Id = ?
+        """, (patient_id,))
+        results = [{
+            'date': r[0], 'type': 'Test Result',
+            'detail': f"{r[1]} - {r[2]}"
+        } for r in cursor.fetchall()]
+
+        # Appointments
+        cursor.execute("""
+            SELECT Sched_Date, Appvl_Status, Notes
+            FROM APPOINTMENTS
+            WHERE Patient_Id = ?
+        """, (patient_id,))
+        appointments = [{
+            'date': r[0], 'type': 'Appointment',
+            'detail': f"{r[1]} - {r[2]}"
+        } for r in cursor.fetchall()]
+
+        conn.close()
+
+        # Merge all three, sort by date (newest first)
+        history = prescriptions + results + appointments
+        history.sort(key=lambda x: x['date'], reverse=True)
+        return history
+    
+    # Gets the patient and professional tied to a specific appointment.
+    # Used for notifications - we need to know WHO to notify when an
+    # appointment's status changes (approve / cancel / reschedule).
+    def get_appointment_parties(self, appt_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT Patient_Id, Professional_Id
+            FROM APPOINTMENTS
+            WHERE Appointment_Id = ?
+        """, (appt_id,))
+        row = cursor.fetchone()
+        conn.close()
+        # Return as a dict, or None if no appointment found
+        if row:
+            return {'patient_id': row[0], 'professional_id': row[1]}
         return None
 
     #==================================================
@@ -516,5 +597,15 @@ class DatabaseManager():
         WHERE Appointment_Id = ?
         """, (date, time, status, appt_id))
 
+        conn.commit()
+        conn.close()
+    def update_appointment_status(self, appt_id, status):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("""
+        UPDATE APPOINTMENTS
+        SET Appvl_Status = ?
+        WHERE Appointment_Id = ?
+        """, (status, appt_id))
         conn.commit()
         conn.close()

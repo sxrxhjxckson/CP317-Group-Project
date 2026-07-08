@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarePath - Schedule</title>
+    <style>
+        :root {
+            --bg: #eef1f6;
+            --card: #ffffff;
+            --ink: #1f2430;
+            --ink-soft: #5a6273;
+            --line: #d9dee8;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --field: #f6f7fb;
+            --success: #10b981;
+            --danger: #b42318;
+            --warning: #d97706;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+        .dash-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--line);
+            background: var(--bg);
+        }
+        .dash-header h1 { font-size: 1.35rem; font-weight: 700; }
+        .content { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .back-link:hover { text-decoration: underline; }
+        .page-title { font-size: 1.5rem; margin-bottom: 20px; }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px;
+            overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            text-align: left;
+            padding: 14px 16px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--ink-soft);
+            border-bottom: 2px solid var(--line);
+        }
+        tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line);
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: var(--field); }
+
+        /* Status pills */
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .status-confirmed { background: #d1fae5; color: #065f46; }
+        .status-cancelled { background: #fde7e6; color: var(--danger); }
+        .status-requested { background: #fef3c7; color: var(--warning); }
+
+        /* Buttons */
+        .actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #fff;
+        }
+        .btn-approve { background: var(--success); }
+        .btn-cancel { background: var(--danger); }
+        .btn-reschedule { background: var(--accent); }
+        .btn:hover { opacity: 0.9; }
+        .inline-form { display: inline; }
+
+        .reschedule-box {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .reschedule-box input {
+            padding: 5px;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            background: var(--field);
+            font-size: 0.8rem;
+        }
+        .empty {
+            padding: 40px;
+            text-align: center;
+            color: var(--ink-soft);
+        }
+    </style>
+</head>
+<body>
+    <header class="dash-header">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="2" y="2" width="20" height="20" rx="5" fill="#2f6df6"/>
+            <path d="M12 17.5s-4.2-2.8-4.2-5.6a2.3 2.3 0 0 1 4.2-1.3 2.3 2.3 0 0 1 4.2 1.3c0 2.8-4.2 5.6-4.2 5.6Z" fill="#ffffff"/>
+        </svg>
+        <h1>CarePath</h1>
+    </header>
+
+    <main class="content">
+        <a href="/professional" class="back-link">&larr; Back to Dashboard</a>
+        <h2 class="page-title">Schedule for Dr. {{ professional_name }}</h2>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appt in appointments %}
+                    <tr>
+                        <td>{{ appt.first_name }} {{ appt.last_name }}</td>
+                        <td>{{ appt.date }}</td>
+                        <td>{{ appt.time }}</td>
+                        <td>
+                            <span class="status status-{{ appt.status|lower }}">{{ appt.status }}</span>
+                        </td>
+                        <td>{{ appt.notes }}</td>
+                        <td>
+                            <div class="actions">
+                                <form method="POST" action="/professional/schedule/update/{{ appt.id }}" class="inline-form">
+                                    <input type="hidden" name="status" value="Confirmed">
+                                    <button type="submit" class="btn btn-approve">Approve</button>
+                                </form>
+                                <form method="POST" action="/professional/schedule/update/{{ appt.id }}" class="inline-form">
+                                    <input type="hidden" name="status" value="Cancelled">
+                                    <button type="submit" class="btn btn-cancel">Cancel</button>
+                                </form>
+                                <form method="POST" action="/professional/schedule/reschedule/{{ appt.id }}" class="reschedule-box">
+                                    <input type="date" name="new_date" required>
+                                    <input type="time" name="new_time" required>
+                                    <button type="submit" class="btn btn-reschedule">Reschedule</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    {% if not appointments %}
+                    <tr>
+                        <td colspan="6" class="empty">No appointments scheduled.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>
