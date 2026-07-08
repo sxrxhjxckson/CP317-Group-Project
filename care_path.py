@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, session, redirect
 from DatabaseManager import DatabaseManager
-
+from datetime import date
 app = Flask(__name__)
 
 DB_PATH = "care_path_db.db"
@@ -73,17 +73,20 @@ def professional_prescriptions():
         expr_date = request.form.get('expiration_date')
         refills = request.form.get('refills')
         patient_id = request.form.get('patient_id')
-
+        
         dbm.update_prescription(presc_id, dosage, expr_date, refills)
         return redirect(f'/professional/prescriptions?patient_id={patient_id}&prescription_id={presc_id}')
     selected_patient_id = request.args.get('patient_id', type=int)
     selected_presc_id = request.args.get('prescription_id', type=int)
     
-    patients = dbm.get_all_patients()
+    patients = dbm.get_patients_by_professional(current_user_id)
     prescriptions = []
     presc_details = None
 
     if selected_patient_id:
+        allowed_ids = [p['id'] for p in patients]
+        if selected_patient_id not in allowed_ids:
+            return "Unauthorized Access: This patient is not assigned to you.", 403
         prescriptions = dbm.get_patient_prescriptions(selected_patient_id)
     
     if selected_presc_id:
@@ -91,7 +94,7 @@ def professional_prescriptions():
     pro_data = dbm.get_professional(current_user_id)
     full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
     return render_template(
-        'prescriptions.html',
+        'prof_prescriptions.html',
         professional_name=full_name,
         patients=patients,
         prescriptions=prescriptions,
@@ -100,16 +103,51 @@ def professional_prescriptions():
         selected_presc_id=selected_presc_id
     )
 
-@app.route("/professional/prescriptions/add", methods=["POST"])
+@app.route("/professional/prescriptions/add", methods=["GET", "POST"])
 def process_add_prescriptions():
     if current_user_type != "Professional":
         return "Unauthorized Access", 403
-    
-    patient_id = request.form.get("patient_id")
-    med_name = request.form.get("medication_name")
-    dosage = request.form.get("dosage")
-    notes = request.form.get("notes")
-    return redirect(f"/professional/prescriptions?patient_id={patient_id}")
+    if request.method == "POST":
+        patient_id = request.form.get("patient_id")
+        medication_id = request.form.get("medication_id")
+        dosage = request.form.get("dosage")
+        expr_date = request.form.get("expiration_date")
+        refills = request.form.get("refills")
+        current_date = date.today().strftime("%d/%m/%Y")
+
+        dbm.add_prescription(
+            patient_id, 
+            current_user_id, 
+            medication_id, 
+            dosage, 
+            current_date,
+            expr_date,
+            refills
+            )
+
+        return redirect(f"/professional/prescriptions?patient_id={patient_id}")
+    selected_patient_id = request.args.get('patient_id', type=int)
+    patients = dbm.get_patients_by_professional(current_user_id)
+    medications = dbm.get_all_medications()
+    prescriptions = []
+    if selected_patient_id:
+        allowed_ids = [p['id'] for p in patients]
+        if selected_patient_id not in allowed_ids:
+            return "Unauthorized Access: This patient is not assigned to you.", 403
+        prescriptions = dbm.get_patient_prescriptions(selected_patient_id)
+    pro_data = dbm.get_professional(current_user_id)
+    full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
+    return render_template(
+        'prof_prescriptions.html',
+        professional_name=full_name,
+        patients=patients,
+        medications=medications,
+        prescriptions=prescriptions,
+        presc_details=None,
+        selected_patient_id=selected_patient_id,
+        selected_presc_id=None,
+        show_add_form=True
+    )
 
 #Update Prescription
 @app.route("/update_prescription/<int:prescrpt_id>", methods=["POST"])
