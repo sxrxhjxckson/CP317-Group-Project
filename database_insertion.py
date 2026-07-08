@@ -4,12 +4,13 @@ from DatabaseManager import DatabaseManager
 
 dbm = DatabaseManager("care_path_db.db")
 
-dbm.add_user("test_patient@test.com","password","Patient")
-dbm.add_user("test_professional@test.com","password","Professional")
+patient_id = dbm.add_user("test_patient@test.com","password","Patient")
+prof_id = dbm.add_user("test_professional@test.com","password","Professional")
 
-dbm.add_patient("John","Doe","01/01/2000",123,456)
+dbm.add_patient(patient_id, "John","Doe","01/01/2000",123,456)
 
-dbm.add_professional("Gregory", "House", "6767")
+dbm.add_professional(prof_id, "Gregory", "House", "6767")
+
 
 dbm.add_medication("Pills", "The good stuff", "Once daily")
 
