@@ -22,7 +22,7 @@ def login_view():
 #Login POST functionality
 @app.route("/login", methods=["POST"])
 def login():
-    global current_user_type
+    global current_user_type, current_user_id
 
     #Reads from form
     email = request.form["email"]
@@ -31,13 +31,15 @@ def login():
     print(f"Email: {email}, Password:{password}")
     
     #Check db for valid user
-    retrieved_type = dbm.get_user_type(email,password)
-
+    user_id, retrieved_type = dbm.get_user_type(email,password)
+    print(f"DB Output -> ID: {user_id} | Type: {retrieved_type} (Type: {type(retrieved_type)})")
     if retrieved_type == "Patient":
         current_user_type = "Patient"
+        current_user_id = user_id
         return redirect("/patient")
     elif retrieved_type == "Professional":
         current_user_type = "Professional"
+        current_user_id = user_id
         return redirect("/professional")
     else:
         # later the login page can show invalid user
@@ -57,7 +59,75 @@ def patient_view():
 def professional_view():
     if current_user_type != "Professional":
         return "Error: User is not a Professional", 403
-    return render_template("professional_dash.html")
+    pro_data = dbm.get_professional(current_user_id)
+    full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
+    return render_template("professional_dash.html", professional_name=full_name)
+
+@app.route("/professional/prescriptions", methods=['GET', 'POST'])
+def professional_prescriptions():
+    if current_user_type != "Professional":
+        return "Error: User is not a Professional", 403
+    if request.method == 'POST':
+        presc_id = request.form.get('prescription_id')
+        dosage = request.form.get('dosage')
+        expr_date = request.form.get('expiration_date')
+        refills = request.form.get('refills')
+        patient_id = request.form.get('patient_id')
+
+        dbm.update_prescription(presc_id, dosage, expr_date, refills)
+        return redirect(f'/professional/prescriptions?patient_id={patient_id}&prescription_id={presc_id}')
+    selected_patient_id = request.args.get('patient_id', type=int)
+    selected_presc_id = request.args.get('prescription_id', type=int)
+    
+    patients = dbm.get_all_patients()
+    prescriptions = []
+    presc_details = None
+
+    if selected_patient_id:
+        prescriptions = dbm.get_patient_prescriptions(selected_patient_id)
+    
+    if selected_presc_id:
+        presc_details = dbm.get_prescription_details(selected_presc_id)
+    pro_data = dbm.get_professional(current_user_id)
+    full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
+    return render_template(
+        'prescriptions.html',
+        professional_name=full_name,
+        patients=patients,
+        prescriptions=prescriptions,
+        presc_details=presc_details,
+        selected_patient_id=selected_patient_id,
+        selected_presc_id=selected_presc_id
+    )
+
+@app.route("/professional/prescriptions/add", methods=["POST"])
+def process_add_prescriptions():
+    if current_user_type != "Professional":
+        return "Unauthorized Access", 403
+    
+    patient_id = request.form.get("patient_id")
+    med_name = request.form.get("medication_name")
+    dosage = request.form.get("dosage")
+    notes = request.form.get("notes")
+    return redirect(f"/professional/prescriptions?patient_id={patient_id}")
+
+#Update Prescription
+@app.route("/update_prescription/<int:prescrpt_id>", methods=["POST"])
+def handle_update_prescription(prescrpt_id):
+    #Security Check
+    if current_user_type != "Professional":
+        return "Unauthorized Access", 403
+    
+    #Extract Form Values
+    dosage = request.form.get("dosage")
+    expiration_date = request.form.get("expiration_date")
+    remaining_refills = request.form.get("remaining_refills")
+
+    #Call Method from DatabaseManager.py
+    dbm.update_prescription(prescrpt_id, dosage, expiration_date, remaining_refills)
+
+    #Redirect to dashboard
+    return redirect("/professional/prescriptions?patient_id={patient_id}&action=list")
 
 if __name__ == "__main__":
     app.run(debug=True, host="127.0.0.1", port=5000)
