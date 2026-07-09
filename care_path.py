@@ -1,10 +1,21 @@
-from flask import Flask, render_template, request, session, redirect
+from flask import Flask, render_template, request, session, redirect, send_file, abort
 from DatabaseManager import DatabaseManager
 from datetime import date
+from werkzeug.utils import secure_filename
+import io
+import mimetypes
 app = Flask(__name__)
 
 DB_PATH = "care_path_db.db"
 dbm = DatabaseManager(DB_PATH)
+
+# Uploaded test-result files are stored directly in the database (as a BLOB)
+ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB cap per upload
+
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 #Current user's info
@@ -84,7 +95,78 @@ def patient_history(patient_id):
 def patient_view():
     if current_user_type != "Patient":
         return "Error: User is not a Patient", 403
-    return render_template("patient_dash.html")
+    pat = dbm.get_patient(current_user_id)
+    patient_name = f"{pat['first_name']} {pat['last_name']}"
+    return render_template("patient_dash.html", patient_name=patient_name)
+
+
+# Patient's Medical Records page (RES-002) - lists their test results
+@app.route("/patient/records")
+def patient_records():
+    if current_user_type != "Patient":
+        return "Error: User is not a Patient", 403
+    results = dbm.get_test_results_by_patient(current_user_id)
+    pat = dbm.get_patient(current_user_id)
+    patient_name = f"{pat['first_name']} {pat['last_name']}"
+    return render_template("patient_records.html", results=results,
+                           patient_name=patient_name)
+
+
+# Upload Test Results (RES-002). Accepts a PDF/image, stores it in the database, and records the result against the patient
+@app.route("/upload_test_result", methods=["POST"])
+def upload_test_result():
+    if current_user_type != "Professional":
+        return "Error: User is not a Professional", 403
+
+    patient_id = request.form.get("patient_id", type=int)
+    test_name = request.form.get("test_name")
+    comments = request.form.get("comments")
+    file = request.files.get("result_file")
+
+    if not patient_id or not test_name or file is None or file.filename == "":
+        return redirect("/professional?error=missing")
+
+    allowed_ids = [p["id"] for p in dbm.get_patients_by_professional(current_user_id)]
+    if patient_id not in allowed_ids:
+        return "Unauthorized Access: This patient is not assigned to you.", 403
+
+    if not allowed_file(file.filename):
+        return redirect("/professional?error=format")
+
+    original_name = secure_filename(file.filename)
+    file_data = file.read()
+
+    today = date.today().strftime("%d/%m/%Y")
+    inserted = dbm.add_test_result(
+        patient_id, current_user_id, test_name, today, "Final", comments,
+        file_name=original_name, file_data=file_data
+    )
+    if not inserted:
+        return redirect("/professional?error=duplicate")
+
+    return redirect("/professional?uploaded=1")
+
+
+# Serves an uploaded test-result file
+@app.route("/results/file/<int:test_id>")
+def serve_result_file(test_id):
+    result = dbm.get_test_result(test_id)
+    if not result or not result["file_data"]:
+        abort(404)
+
+    is_owner_patient = (current_user_type == "Patient"
+                        and current_user_id == result["patient_id"])
+    is_owner_professional = (current_user_type == "Professional"
+                             and current_user_id == result["professional_id"])
+    if not (is_owner_patient or is_owner_professional):
+        return "Unauthorized Access", 403
+
+    mimetype = mimetypes.guess_type(result["file_name"])[0] or "application/octet-stream"
+    return send_file(
+        io.BytesIO(result["file_data"]),
+        mimetype=mimetype,
+        download_name=result["file_name"]
+    )
 
 #Redirection to professional dashboard with error for non patients
 @app.route("/professional")
@@ -96,7 +178,9 @@ def professional_view():
     patients = dbm.get_patients_by_professional(current_user_id)
     return render_template("professional_dash.html",
                            professional_name=full_name,
-                           patients=patients)
+                           patients=patients,
+                           upload_status=request.args.get("uploaded"),
+                           upload_error=request.args.get("error"))
 
 @app.route("/professional/prescriptions", methods=['GET', 'POST'])
 def professional_prescriptions():
