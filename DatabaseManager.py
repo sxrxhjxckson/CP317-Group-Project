@@ -202,7 +202,7 @@ class DatabaseManager():
     def get_or_create_medication_id(self, name):
         conn = sqlite3.connect(self.path)
         cursor = conn.cursor()
-        cursor.execute("SELECT Medication_Id FROM mEDICATIONS WHERE Medication_Name = ?", (name,))
+        cursor.execute("SELECT Medication_Id FROM MEDICATIONS WHERE Medication_Name = ?", (name,))
         row = cursor.fetchone()
         if row:
             med_id = row[0]
