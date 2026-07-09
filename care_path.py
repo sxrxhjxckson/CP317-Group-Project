@@ -316,8 +316,10 @@ def handle_update_prescription(prescrpt_id):
     #Call Method from DatabaseManager.py
     dbm.update_prescription(prescrpt_id, dosage, expiration_date, remaining_refills)
 
+    details = dbm.get_prescription_details(prescrpt_id)
+    patient_id = details['patient_id'] if details else ""
     #Redirect to dashboard
-    return redirect("/professional/prescriptions?patient_id={patient_id}&action=list")
+    return redirect(f"/professional/prescriptions?patient_id={patient_id}&action=list")
 
 if __name__ == "__main__":
     app.run(debug=True, host="127.0.0.1", port=5000)
