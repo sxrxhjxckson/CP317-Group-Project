@@ -1,10 +1,21 @@
-from flask import Flask, render_template, request, session, redirect
+from flask import Flask, render_template, request, session, redirect, send_file, abort
 from DatabaseManager import DatabaseManager
 from datetime import date
+from werkzeug.utils import secure_filename
+import io
+import mimetypes
 app = Flask(__name__)
 
 DB_PATH = "care_path_db.db"
 dbm = DatabaseManager(DB_PATH)
+
+# Uploaded test-result files are stored directly in the database (as a BLOB)
+ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB cap per upload
+
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 #Current user's info
@@ -18,6 +29,19 @@ current_user_id = -1
 @app.route("/")
 def login_view():
     return render_template("login.html")
+
+@app.route("/professional/schedule")
+def professional_schedule():
+    if current_user_type != "Professional":
+        return "Error: User is not a Professional", 403
+    appointments = dbm.get_appointments_by_professional(current_user_id)
+    pro_data = dbm.get_professional(current_user_id)
+    full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
+    return render_template(
+        "schedule.html",
+        professional_name=full_name,
+        appointments=appointments
+    )
 
 #Login POST functionality
 @app.route("/login", methods=["POST"])
@@ -36,6 +60,7 @@ def login():
     if retrieved_type == "Patient":
         current_user_type = "Patient"
         current_user_id = user_id
+        
         return redirect("/patient")
     elif retrieved_type == "Professional":
         current_user_type = "Professional"
@@ -47,12 +72,101 @@ def login():
 
 
 
+# Patient Medical History Timeline (HIS-001), mwerges prescriptions, results, and appointments chronologically
+@app.route("/professional/history/<int:patient_id>")
+def patient_history(patient_id):
+    if current_user_type != "Professional":
+        return "Error: User is not a Professional", 403
+
+    history = dbm.get_patient_history(patient_id)
+    pro_data = dbm.get_professional(current_user_id)
+    full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
+    return render_template(
+        "history.html",
+        professional_name=full_name,
+        history=history,
+        patient_id=patient_id
+    )
+
+
+
 #Redirection to patient dashboard with error for non patients
 @app.route("/patient")
 def patient_view():
     if current_user_type != "Patient":
         return "Error: User is not a Patient", 403
-    return render_template("patient_dash.html")
+    pat = dbm.get_patient(current_user_id)
+    patient_name = f"{pat['first_name']} {pat['last_name']}"
+    return render_template("patient_dash.html", patient_name=patient_name)
+
+
+# Patient's Medical Records page (RES-002) - lists their test results
+@app.route("/patient/records")
+def patient_records():
+    if current_user_type != "Patient":
+        return "Error: User is not a Patient", 403
+    results = dbm.get_test_results_by_patient(current_user_id)
+    pat = dbm.get_patient(current_user_id)
+    patient_name = f"{pat['first_name']} {pat['last_name']}"
+    return render_template("patient_records.html", results=results,
+                           patient_name=patient_name)
+
+
+# Upload Test Results (RES-002). Accepts a PDF/image, stores it in the database, and records the result against the patient
+@app.route("/upload_test_result", methods=["POST"])
+def upload_test_result():
+    if current_user_type != "Professional":
+        return "Error: User is not a Professional", 403
+
+    patient_id = request.form.get("patient_id", type=int)
+    test_name = request.form.get("test_name")
+    comments = request.form.get("comments")
+    file = request.files.get("result_file")
+
+    if not patient_id or not test_name or file is None or file.filename == "":
+        return redirect("/professional?error=missing")
+
+    allowed_ids = [p["id"] for p in dbm.get_patients_by_professional(current_user_id)]
+    if patient_id not in allowed_ids:
+        return "Unauthorized Access: This patient is not assigned to you.", 403
+
+    if not allowed_file(file.filename):
+        return redirect("/professional?error=format")
+
+    original_name = secure_filename(file.filename)
+    file_data = file.read()
+
+    today = date.today().strftime("%d/%m/%Y")
+    inserted = dbm.add_test_result(
+        patient_id, current_user_id, test_name, today, "Final", comments,
+        file_name=original_name, file_data=file_data
+    )
+    if not inserted:
+        return redirect("/professional?error=duplicate")
+
+    return redirect("/professional?uploaded=1")
+
+
+# Serves an uploaded test-result file
+@app.route("/results/file/<int:test_id>")
+def serve_result_file(test_id):
+    result = dbm.get_test_result(test_id)
+    if not result or not result["file_data"]:
+        abort(404)
+
+    is_owner_patient = (current_user_type == "Patient"
+                        and current_user_id == result["patient_id"])
+    is_owner_professional = (current_user_type == "Professional"
+                             and current_user_id == result["professional_id"])
+    if not (is_owner_patient or is_owner_professional):
+        return "Unauthorized Access", 403
+
+    mimetype = mimetypes.guess_type(result["file_name"])[0] or "application/octet-stream"
+    return send_file(
+        io.BytesIO(result["file_data"]),
+        mimetype=mimetype,
+        download_name=result["file_name"]
+    )
 
 #Redirection to professional dashboard with error for non patients
 @app.route("/professional")
@@ -61,7 +175,12 @@ def professional_view():
         return "Error: User is not a Professional", 403
     pro_data = dbm.get_professional(current_user_id)
     full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
-    return render_template("professional_dash.html", professional_name=full_name)
+    patients = dbm.get_patients_by_professional(current_user_id)
+    return render_template("professional_dash.html",
+                           professional_name=full_name,
+                           patients=patients,
+                           upload_status=request.args.get("uploaded"),
+                           upload_error=request.args.get("error"))
 
 @app.route("/professional/prescriptions", methods=['GET', 'POST'])
 def professional_prescriptions():
@@ -102,6 +221,39 @@ def professional_prescriptions():
         selected_patient_id=selected_patient_id,
         selected_presc_id=selected_presc_id
     )
+@app.route("/professional/schedule/update/<int:appt_id>", methods=["POST"])
+def update_appointment_status(appt_id):
+    if current_user_type != "Professional":
+        return "Unauthorized Access", 403
+
+    status = request.form.get("status")
+
+    # Update the appointment's status in the database
+    dbm.update_appointment_status(appt_id, status)
+
+    # --- Notification flag ---
+    # Find out who this appointment belongs to, then notify the patient
+    # that their appointment status changed (approve / cancel / reschedule).
+    parties = dbm.get_appointment_parties(appt_id)
+    if parties:
+        notice = f"Your appointment status has been updated to: {status}"
+        dbm.add_message(current_user_id, parties['patient_id'], None, notice)
+
+    return redirect("/professional/schedule")
+
+# Reschedule an appointment (APT-002) - updates the date and time
+@app.route("/professional/schedule/reschedule/<int:appt_id>", methods=["POST"])
+def reschedule_appointment(appt_id):
+    if current_user_type != "Professional":
+        return "Unauthorized Access", 403
+
+    new_date = request.form.get("new_date")
+    new_time = request.form.get("new_time")
+
+    # Reuses the existing update method (date, time, status, appt_id)
+    dbm.update_appointement(new_date, new_time, "Confirmed", appt_id)
+
+    return redirect("/professional/schedule")
 
 @app.route("/professional/prescriptions/add", methods=["GET", "POST"])
 def process_add_prescriptions():

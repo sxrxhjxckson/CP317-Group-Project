@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CarePath - Patient Dashboard</title>
+    <title>CarePath - My Medical Records</title>
     <style>
       :root {
         --bg: #eef1f6;
@@ -12,7 +12,9 @@
         --ink-soft: #5a6273;
         --line: #d9dee8;
         --accent: #4f46e5;
+        --accent-hover: #4338ca;
         --field: #f6f7fb;
+        --warning: #d97706;
         --nav-bg: #6366f1;
         --nav-hover: #4f46e5;
         --nav-active: #3b82f6;
@@ -114,6 +116,116 @@
         padding: 28px 32px;
         min-width: 0;
       }
+
+      .status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      .status-final,
+      .status-ready {
+        background: #1f2937;
+        color: #ffffff;
+      }
+      .status-pending {
+        background: #fef3c7;
+        color: var(--warning);
+      }
+
+      .records-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .page-title {
+        font-size: 1.5rem;
+        margin: 0 auto;
+      }
+      .btn-download {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 16px;
+        background: var(--accent);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .btn-download:hover {
+        background: var(--accent-hover);
+      }
+
+      .filter-tabs {
+        display: flex;
+        gap: 28px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 4px;
+        padding: 0 8px;
+      }
+      .filter-tabs a {
+        padding: 10px 2px;
+        font-size: 0.85rem;
+        color: var(--ink-soft);
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+      }
+      .filter-tabs a.active {
+        color: var(--ink);
+        font-weight: 700;
+        border-bottom-color: var(--accent);
+      }
+      .filter-tabs a:hover {
+        color: var(--ink);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      thead th {
+        text-align: left;
+        padding: 14px 16px;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--ink-soft);
+        font-weight: 700;
+      }
+      tbody td {
+        padding: 18px 16px;
+        border-top: 1px solid var(--line);
+        font-size: 0.9rem;
+        vertical-align: middle;
+      }
+      .view-link {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+      .view-link:hover {
+        text-decoration: underline;
+      }
+      .no-file {
+        color: var(--ink-soft);
+        font-size: 0.85rem;
+      }
+      .empty {
+        padding: 48px;
+        text-align: center;
+        color: var(--ink-soft);
+      }
     </style>
   </head>
   <body>
@@ -190,7 +302,7 @@
       <aside class="sidebar">
         <ul class="side-nav">
           <li>
-            <a href="/patient" class="active">
+            <a href="/patient">
               <svg
                 width="18"
                 height="18"
@@ -210,7 +322,7 @@
             >
           </li>
           <li>
-            <a href="/patient/records">
+            <a href="/patient/records" class="active">
               <svg
                 width="18"
                 height="18"
@@ -310,7 +422,78 @@
       </aside>
 
       <main class="content">
-        <h1>Placeholder dashboard</h1>
+        <div class="records-head">
+          <span style="width: 120px"></span>
+          <h2 class="page-title">My Medical Records</h2>
+          <a href="#" class="btn-download" title="Coming soon">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Download All
+          </a>
+        </div>
+
+        <!-- Category filters (visual only for now; real filtering is future work) -->
+        <nav class="filter-tabs">
+          <a href="#" class="active">All</a>
+          <a href="#">Lab Results</a>
+          <a href="#">Visits</a>
+          <a href="#">Imaging</a>
+          <a href="#">Diagnoses</a>
+        </nav>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Provider</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in results %}
+            <tr>
+              <td>{{ r.date }}</td>
+              <td>{{ r.test_name }}</td>
+              <td>{{ r.provider }}</td>
+              <td>
+                <span class="status status-{{ r.status|lower }}"
+                  >{{ r.status }}</span
+                >
+              </td>
+              <td>
+                {% if r.file_name %}
+                <a
+                  class="view-link"
+                  href="/results/file/{{ r.test_id }}"
+                  target="_blank"
+                  >View / Download</a
+                >
+                {% else %}
+                <span class="no-file">Not available</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %} {% if not results %}
+            <tr>
+              <td colspan="5" class="empty">No medical records yet.</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
       </main>
     </div>
   </body>

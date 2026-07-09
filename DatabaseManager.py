@@ -89,6 +89,8 @@ class DatabaseManager():
             Date_Conducted DATE NOT NULL,
             Test_Status TEXT NOT NULL,
             Doctor_Comments TEXT,
+            File_Name TEXT,
+            File_Data BLOB,
             FOREIGN KEY (Patient_Id) REFERENCES PATIENTS(Patient_Id),
             FOREIGN KEY (Professional_Id) REFERENCES PROFESSIONALS(Professional_Id),
             UNIQUE (Patient_Id, Professional_Id, Test_Name, Date_Conducted)
@@ -227,19 +229,24 @@ class DatabaseManager():
         conn.commit()
         conn.close()
 
-    def add_test_result(self, pat_id, prof_id, name, date, status, comments):
+    def add_test_result(self, pat_id, prof_id, name, date, status, comments,
+                        file_name=None, file_data=None):
         conn = sqlite3.connect(self.path)
         cursor = conn.cursor()
 
         #Status should be 'Pending' or 'Final'
         cursor.execute("""
         INSERT OR IGNORE INTO TEST_RESULTS (Patient_Id, Professional_Id, Test_Name,
-                            Date_Conducted,Test_Status, Doctor_Comments)
-        VALUES (?,?,?,?,?,?)
-        """, (pat_id, prof_id, name, date, status, comments))
+                            Date_Conducted,Test_Status, Doctor_Comments, File_Name, File_Data)
+        VALUES (?,?,?,?,?,?,?,?)
+        """, (pat_id, prof_id, name, date, status, comments, file_name,
+              sqlite3.Binary(file_data) if file_data is not None else None))
 
+        inserted = cursor.rowcount
         conn.commit()
         conn.close()
+        
+        return inserted
 
     def add_appointement(self, pat_id, prof_id, date, time, status, notes):
         conn = sqlite3.connect(self.path)
@@ -384,6 +391,24 @@ class DatabaseManager():
             'id': r[0], 'med_name': r[1], 'date': r[2], 'dosage': r[3]
         } for r in rows]
     
+    def get_appointments_by_professional(self, professional_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("""
+                SELECT a.Appointment_Id, p.First_Name, p.Last_Name,
+                a.Sched_Date, a.Sched_Time, a.Appvl_Status, a.Notes
+                FROM APPOINTMENTS a
+                JOIN PATIENTS p ON a.Patient_Id = p.Patient_Id
+                WHERE a.Professional_Id = ?
+                ORDER BY a.Sched_Date, a.Sched_Time
+                """, (professional_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return [{
+            'id': r[0], 'first_name': r[1], 'last_name': r[2],
+            'date': r[3], 'time': r[4], 'status': r[5], 'notes': r[6]
+        } for r in rows]
+    
     def get_all_medications(self):
         conn = sqlite3.connect(self.path)
         cursor = conn.cursor()
@@ -421,6 +446,126 @@ class DatabaseManager():
                 'patient_id': row[6]
             }
         return None
+    
+    def get_patient_history(self, patient_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        # Prescriptions
+        cursor.execute("""
+            SELECT p.Prescription_Date, m.Medication_Name, p.Dosage
+            FROM PRESCRIPTIONS p
+            JOIN MEDICATIONS m ON p.Medication_Id = m.Medication_Id
+            WHERE p.Patient_Id = ?
+        """, (patient_id,))
+        prescriptions = [{
+            'date': r[0], 'type': 'Prescription',
+            'detail': f"{r[1]} ({r[2]})"
+        } for r in cursor.fetchall()]
+
+        # Test results
+        cursor.execute("""
+            SELECT Date_Conducted, Test_Name, Test_Status
+            FROM TEST_RESULTS
+            WHERE Patient_Id = ?
+        """, (patient_id,))
+        results = [{
+            'date': r[0], 'type': 'Test Result',
+            'detail': f"{r[1]} - {r[2]}"
+        } for r in cursor.fetchall()]
+
+        # Appointments
+        cursor.execute("""
+            SELECT Sched_Date, Appvl_Status, Notes
+            FROM APPOINTMENTS
+            WHERE Patient_Id = ?
+        """, (patient_id,))
+        appointments = [{
+            'date': r[0], 'type': 'Appointment',
+            'detail': f"{r[1]} - {r[2]}"
+        } for r in cursor.fetchall()]
+
+        conn.close()
+
+        # Merge all three, sort by date (newest first)
+        history = prescriptions + results + appointments
+        history.sort(key=lambda x: x['date'], reverse=True)
+        return history
+    
+    # Gets the patient and professional tied to a specific appointment.
+    # Used for notifications - we need to know WHO to notify when an
+    # appointment's status changes (approve / cancel / reschedule).
+    def get_appointment_parties(self, appt_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT Patient_Id, Professional_Id
+            FROM APPOINTMENTS
+            WHERE Appointment_Id = ?
+        """, (appt_id,))
+        row = cursor.fetchone()
+        conn.close()
+        # Return as a dict, or None if no appointment found
+        if row:
+            return {'patient_id': row[0], 'professional_id': row[1]}
+        return None
+
+    # Gets a single test result
+    def get_test_result(self, test_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT Test_Id, Patient_Id, Professional_Id, Test_Name,
+                   Date_Conducted, Test_Status, Doctor_Comments, File_Name, File_Data
+            FROM TEST_RESULTS
+            WHERE Test_Id = ?
+        """, (test_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {
+                'test_id': row[0], 'patient_id': row[1], 'professional_id': row[2],
+                'test_name': row[3], 'date': row[4], 'status': row[5],
+                'comments': row[6], 'file_name': row[7], 'file_data': row[8]
+            }
+        return None
+
+    # Gets a single patient's name, for display on their dashboard.
+    def get_patient(self, patient_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT First_Name, Last_Name FROM PATIENTS WHERE Patient_Id = ?
+        """, (patient_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {'first_name': row[0], 'last_name': row[1]}
+        return {'first_name': 'Unknown', 'last_name': 'Patient'}
+
+    # Gets all test results for a patient, newest first, and the provider of the test.
+    def get_test_results_by_patient(self, patient_id):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT t.Test_Id, t.Test_Name, t.Date_Conducted, t.Test_Status,
+                   t.Doctor_Comments, t.File_Name, pr.First_Name, pr.Last_Name
+            FROM TEST_RESULTS t
+            LEFT JOIN PROFESSIONALS pr ON t.Professional_Id = pr.Professional_Id
+            WHERE t.Patient_Id = ?
+            ORDER BY t.Date_Conducted DESC
+        """, (patient_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        results = []
+        for r in rows:
+            provider = f"Dr. {r[6]} {r[7]}" if r[6] else "—"
+            results.append({
+                'test_id': r[0], 'test_name': r[1], 'date': r[2],
+                'status': r[3], 'comments': r[4], 'file_name': r[5],
+                'provider': provider
+            })
+        return results
 
     #==================================================
     #----------DATA UPDATE METHODS------------------
@@ -516,5 +661,15 @@ class DatabaseManager():
         WHERE Appointment_Id = ?
         """, (date, time, status, appt_id))
 
+        conn.commit()
+        conn.close()
+    def update_appointment_status(self, appt_id, status):
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+        cursor.execute("""
+        UPDATE APPOINTMENTS
+        SET Appvl_Status = ?
+        WHERE Appointment_Id = ?
+        """, (status, appt_id))
         conn.commit()
         conn.close()

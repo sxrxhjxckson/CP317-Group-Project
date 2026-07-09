@@ -1,8 +1,14 @@
 from DatabaseManager import DatabaseManager
+import os
 
 #Testing file for inserting stuff into the database
 
 dbm = DatabaseManager("care_path_db.db")
+
+
+_sample_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sample_data", "sample_result.pdf")
+with open(_sample_path, "rb") as _f:
+    sample_result_pdf = _f.read()
 
 patient_id_one = dbm.add_user("test_patient@test.com","password","Patient")
 prof_id_one = dbm.add_user("test_professional@test.com","password","Professional")
@@ -22,6 +28,8 @@ dbm.add_medication("Pills", "The good stuff", "Once daily")
 dbm.add_prescription(patient_id_one,prof_id_one,1,"test dosage", "26/06/2026","26/07/2026",1)
 
 dbm.add_test_result(patient_id_one,prof_id_one,"Test test results", "26/06/2026","Pending","These are the comments")
+
+dbm.add_test_result(patient_id_one,prof_id_one,"Chest X-Ray", "27/06/2026","Final","No abnormalities detected.", file_name="chest_xray.pdf", file_data=sample_result_pdf)
 
 dbm.add_appointement(patient_id_one,prof_id_one,"26/06/2026","14:05","Confirmed", "These are the notes")
 
