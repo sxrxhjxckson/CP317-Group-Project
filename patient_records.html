@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CarePath - Patient Dashboard</title>
+    <style>
+      :root {
+        --bg: #eef1f6;
+        --card: #ffffff;
+        --ink: #1f2430;
+        --ink-soft: #5a6273;
+        --line: #d9dee8;
+        --accent: #4f46e5;
+        --field: #f6f7fb;
+        --nav-bg: #6366f1;
+        --nav-hover: #4f46e5;
+        --nav-active: #3b82f6;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        min-height: 100vh;
+      }
+      .dash-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--line);
+        background: var(--card);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: inherit;
+      }
+      .brand h1 {
+        font-size: 1.35rem;
+        font-weight: 700;
+      }
+      .meta-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .icon-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--ink-soft);
+        display: flex;
+        align-items: center;
+      }
+      .icon-btn:hover {
+        color: var(--ink);
+      }
+      .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+
+      .layout {
+        display: flex;
+        align-items: flex-start;
+      }
+      .sidebar {
+        width: 210px;
+        flex-shrink: 0;
+        padding: 24px 16px;
+      }
+      .side-nav {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .side-nav a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 16px;
+        border-radius: 8px;
+        background: var(--nav-bg);
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: background 0.15s;
+      }
+      .side-nav a:hover {
+        background: var(--nav-hover);
+      }
+      .side-nav a.active {
+        background: var(--nav-active);
+      }
+      .side-nav svg {
+        flex-shrink: 0;
+      }
+
+      .content {
+        flex: 1;
+        padding: 28px 32px;
+        min-width: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="dash-header">
+      <a class="brand" href="/patient">
+        <svg
+          width="26"
+          height="26"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <rect x="2" y="2" width="20" height="20" rx="5" fill="#2f6df6" />
+          <path
+            d="M12 17.5s-4.2-2.8-4.2-5.6a2.3 2.3 0 0 1 4.2-1.3 2.3 2.3 0 0 1 4.2 1.3c0 2.8-4.2 5.6-4.2 5.6Z"
+            fill="#ffffff"
+          />
+        </svg>
+        <h1>CarePath</h1>
+      </a>
+      <div class="meta-actions">
+        <button class="icon-btn" aria-label="Notifications">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" aria-label="Settings">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="3"></circle>
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+            ></path>
+          </svg>
+        </button>
+        <div class="user-profile">
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>{{ patient_name }}</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <ul class="side-nav">
+          <li>
+            <a href="/patient" class="active">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              Dashboard</a
+            >
+          </li>
+          <li>
+            <a href="/patient/records">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                ></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              My Records</a
+            >
+          </li>
+          <li>
+            <a href="/patient/appointments">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              Appointments</a
+            >
+          </li>
+          <li>
+            <a href="/patient/prescriptions">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M12 11h4m-2-2v4m-2-7.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2.5M6 6h12v11a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V6z"
+                ></path>
+              </svg>
+              Prescriptions</a
+            >
+          </li>
+          <li>
+            <a href="/patient/messages">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                ></path>
+              </svg>
+              Messages</a
+            >
+          </li>
+          <li>
+            <a href="/patient/health">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+              </svg>
+              My Health</a
+            >
+          </li>
+        </ul>
+      </aside>
+
+      <main class="content">
+        <h1>Placeholder dashboard</h1>
+      </main>
+    </div>
+  </body>
+</html>

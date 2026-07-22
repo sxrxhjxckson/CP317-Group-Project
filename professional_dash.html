@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CarePath - My Health</title>
+    <style>
+      :root {
+        --bg: #eef1f6;
+        --card: #ffffff;
+        --ink: #1f2430;
+        --ink-soft: #5a6273;
+        --line: #d9dee8;
+        --accent: #4f46e5;
+        --accent-hover: #4338ca;
+        --field: #f6f7fb;
+        --nav-bg: #6366f1;
+        --nav-hover: #4f46e5;
+        --nav-active: #3b82f6;
+        --danger: #b42318;
+        --danger-soft: #fde7e6;
+        --success-soft: #d1fae5;
+        --success-ink: #065f46;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        min-height: 100vh;
+      }
+      .dash-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--line);
+        background: var(--card);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: inherit;
+      }
+      .brand h1 {
+        font-size: 1.35rem;
+        font-weight: 700;
+      }
+      .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+      .layout {
+        display: flex;
+        align-items: flex-start;
+      }
+      .sidebar {
+        width: 210px;
+        flex-shrink: 0;
+        padding: 24px 16px;
+      }
+      .side-nav {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .side-nav a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 16px;
+        border-radius: 8px;
+        background: var(--nav-bg);
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: background 0.15s;
+      }
+      .side-nav a:hover {
+        background: var(--nav-hover);
+      }
+      .side-nav a.active {
+        background: var(--nav-active);
+      }
+      .content {
+        flex: 1;
+        padding: 28px 32px;
+        min-width: 0;
+        max-width: 900px;
+      }
+      .page-title {
+        font-size: 1.4rem;
+        margin-bottom: 20px;
+      }
+      .banner {
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border: 1px solid transparent;
+      }
+      .banner-success {
+        background: var(--success-soft);
+        color: var(--success-ink);
+        border-color: #a7f3d0;
+      }
+      .banner-error {
+        background: var(--danger-soft);
+        color: var(--danger);
+        border-color: #fbd5d2;
+      }
+      .banner-error ul {
+        margin: 4px 0 0 18px;
+      }
+      .panel-card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 24px;
+      }
+      .panel-card h3 {
+        font-size: 1rem;
+        margin-bottom: 16px;
+      }
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+      .form-group label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin-bottom: 4px;
+        color: var(--ink-soft);
+      }
+      .form-control {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: var(--field);
+        font-size: 0.9rem;
+      }
+      textarea.form-control {
+        resize: vertical;
+        min-height: 60px;
+        font-family: inherit;
+      }
+      .bp-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .bp-row .form-control {
+        text-align: center;
+      }
+      .bp-row span {
+        font-weight: 700;
+        color: var(--ink-soft);
+      }
+      .full-row {
+        grid-column: 1 / -1;
+      }
+      .btn-primary {
+        margin-top: 16px;
+        padding: 10px 20px;
+        background: var(--accent);
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+      }
+      .stats-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        text-align: center;
+      }
+      .stat-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .stat-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+      }
+      th, td {
+        text-align: left;
+        padding: 8px 6px;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        color: var(--ink-soft);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+      }
+      .empty {
+        padding: 20px;
+        text-align: center;
+        color: var(--ink-soft);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="dash-header">
+      <a class="brand" href="/patient">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2" y="2" width="20" height="20" rx="5" fill="#2f6df6" />
+          <path d="M12 17.5s-4.2-2.8-4.2-5.6a2.3 2.3 0 0 1 4.2-1.3 2.3 2.3 0 0 1 4.2 1.3c0 2.8-4.2 5.6-4.2 5.6Z" fill="#ffffff" />
+        </svg>
+        <h1>CarePath</h1>
+      </a>
+      <div class="user-profile">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span>{{ patient_name }}</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <ul class="side-nav">
+          <li><a href="/patient">Dashboard</a></li>
+          <li><a href="/patient/records">My Records</a></li>
+          <li><a href="/patient/appointments">Appointments</a></li>
+          <li><a href="/patient/prescriptions">Prescriptions</a></li>
+          <li><a href="/patient/messages">Messages</a></li>
+          <li><a href="/patient/health" class="active">My Health</a></li>
+        </ul>
+      </aside>
+
+      <main class="content">
+        <h2 class="page-title">My Health</h2>
+
+        {% if saved %}
+        <div class="banner banner-success">Vitals entry saved.</div>
+        {% endif %}
+        {% if errors %}
+        <div class="banner banner-error">
+          Couldn't save your entry:
+          <ul>
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <div class="panel-card">
+          <h3>Log Today's Vitals</h3>
+          <form method="POST" action="/patient/vitals/add">
+            <div class="field-grid">
+              <div class="form-group">
+                <label for="bpSystolic">Blood Pressure (mmHg)</label>
+                <div class="bp-row">
+                  <input type="number" id="bpSystolic" name="systolic" class="form-control" placeholder="120" />
+                  <span>/</span>
+                  <input type="number" id="bpDiastolic" name="diastolic" class="form-control" placeholder="80" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="heartRate">Heart Rate (bpm)</label>
+                <input type="number" id="heartRate" name="heart_rate" class="form-control" placeholder="72" />
+              </div>
+              <div class="form-group">
+                <label for="temperature">Temperature (&deg;C)</label>
+                <input type="number" step="0.1" id="temperature" name="temperature" class="form-control" placeholder="36.8" />
+              </div>
+              <div class="form-group">
+                <label for="oxygenLevel">Oxygen Level (%)</label>
+                <input type="number" step="0.1" id="oxygenLevel" name="oxygen_level" class="form-control" placeholder="98" />
+              </div>
+              <div class="form-group">
+                <label for="weight">Weight (kg)</label>
+                <input type="number" step="0.1" id="weight" name="weight" class="form-control" placeholder="68" />
+              </div>
+              <div class="form-group full-row">
+                <label for="notes">Symptoms / Notes</label>
+                <textarea id="notes" name="notes" class="form-control" placeholder="e.g. mild headache in the morning, resolved by noon"></textarea>
+              </div>
+            </div>
+            <button type="submit" class="btn-primary">Save Entry</button>
+          </form>
+        </div>
+
+        <div class="panel-card">
+          <h3>Trends</h3>
+          <div class="stats-row">
+            <div>
+              <div class="stat-label">Avg Blood Pressure</div>
+              <div class="stat-value">{{ summary.avg_blood_pressure or '—' }}</div>
+            </div>
+            <div>
+              <div class="stat-label">Avg Heart Rate</div>
+              <div class="stat-value">{{ summary.avg_heart_rate or '—' }}{% if summary.avg_heart_rate %} bpm{% endif %}</div>
+            </div>
+            <div>
+              <div class="stat-label">Entries Logged</div>
+              <div class="stat-value">{{ summary.entries_logged }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <h3>History</h3>
+          {% if vitals %}
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>BP</th>
+                <th>HR</th>
+                <th>Temp</th>
+                <th>O2</th>
+                <th>Weight</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in vitals %}
+              <tr>
+                <td>{{ v.date }}</td>
+                <td>{% if v.systolic and v.diastolic %}{{ v.systolic }}/{{ v.diastolic }}{% else %}—{% endif %}</td>
+                <td>{{ v.heart_rate or '—' }}</td>
+                <td>{{ v.temperature or '—' }}</td>
+                <td>{{ v.oxygen_level or '—' }}</td>
+                <td>{{ v.weight or '—' }}</td>
+                <td>{{ v.notes or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty">No vitals logged yet.</div>
+          {% endif %}
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CarePath - My Medical Records</title>
+    <style>
+      :root {
+        --bg: #eef1f6;
+        --card: #ffffff;
+        --ink: #1f2430;
+        --ink-soft: #5a6273;
+        --line: #d9dee8;
+        --accent: #4f46e5;
+        --accent-hover: #4338ca;
+        --field: #f6f7fb;
+        --warning: #d97706;
+        --nav-bg: #6366f1;
+        --nav-hover: #4f46e5;
+        --nav-active: #3b82f6;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        min-height: 100vh;
+      }
+      .dash-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--line);
+        background: var(--card);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: inherit;
+      }
+      .brand h1 {
+        font-size: 1.35rem;
+        font-weight: 700;
+      }
+      .meta-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .icon-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--ink-soft);
+        display: flex;
+        align-items: center;
+      }
+      .icon-btn:hover {
+        color: var(--ink);
+      }
+      .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+
+      .layout {
+        display: flex;
+        align-items: flex-start;
+      }
+      .sidebar {
+        width: 210px;
+        flex-shrink: 0;
+        padding: 24px 16px;
+      }
+      .side-nav {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .side-nav a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 16px;
+        border-radius: 8px;
+        background: var(--nav-bg);
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: background 0.15s;
+      }
+      .side-nav a:hover {
+        background: var(--nav-hover);
+      }
+      .side-nav a.active {
+        background: var(--nav-active);
+      }
+      .side-nav svg {
+        flex-shrink: 0;
+      }
+
+      .content {
+        flex: 1;
+        padding: 28px 32px;
+        min-width: 0;
+      }
+
+      .status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      .status-final,
+      .status-ready {
+        background: #1f2937;
+        color: #ffffff;
+      }
+      .status-pending {
+        background: #fef3c7;
+        color: var(--warning);
+      }
+
+      .records-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .page-title {
+        font-size: 1.5rem;
+        margin: 0 auto;
+      }
+      .btn-download {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 16px;
+        background: var(--accent);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .btn-download:hover {
+        background: var(--accent-hover);
+      }
+
+      .filter-tabs {
+        display: flex;
+        gap: 28px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 4px;
+        padding: 0 8px;
+      }
+      .filter-tabs a {
+        padding: 10px 2px;
+        font-size: 0.85rem;
+        color: var(--ink-soft);
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+      }
+      .filter-tabs a.active {
+        color: var(--ink);
+        font-weight: 700;
+        border-bottom-color: var(--accent);
+      }
+      .filter-tabs a:hover {
+        color: var(--ink);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      thead th {
+        text-align: left;
+        padding: 14px 16px;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--ink-soft);
+        font-weight: 700;
+      }
+      tbody td {
+        padding: 18px 16px;
+        border-top: 1px solid var(--line);
+        font-size: 0.9rem;
+        vertical-align: middle;
+      }
+      .view-link {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+      .view-link:hover {
+        text-decoration: underline;
+      }
+      .no-file {
+        color: var(--ink-soft);
+        font-size: 0.85rem;
+      }
+      .empty {
+        padding: 48px;
+        text-align: center;
+        color: var(--ink-soft);
+      }
+
+      .section-title {
+        font-size: 1.15rem;
+        margin: 32px 0 16px;
+      }
+      .timeline {
+        position: relative;
+        padding-left: 32px;
+      }
+      .timeline::before {
+        content: "";
+        position: absolute;
+        left: 8px;
+        top: 4px;
+        bottom: 4px;
+        width: 2px;
+        background: var(--line);
+      }
+      .event {
+        position: relative;
+        margin-bottom: 16px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 16px;
+      }
+      .event::before {
+        content: "";
+        position: absolute;
+        left: -32px;
+        top: 16px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 3px solid var(--bg);
+      }
+      .event-diagnosis::before { background: #b91c1c; }
+      .event-allergy::before   { background: #c2410c; }
+      .event-procedure::before { background: #6d28d9; }
+      .event-note::before      { background: #4b5563; }
+      .event-type {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 999px;
+        margin-bottom: 6px;
+      }
+      .type-diagnosis { background: #fee2e2; color: #b91c1c; }
+      .type-allergy   { background: #ffedd5; color: #c2410c; }
+      .type-procedure { background: #ede9fe; color: #6d28d9; }
+      .type-note      { background: #f3f4f6; color: #4b5563; }
+      .event-date { float: right; font-size: 0.8rem; color: var(--ink-soft); }
+      .event-detail { font-size: 0.9rem; margin-top: 2px; }
+      .event-provider { font-size: 0.78rem; color: var(--ink-soft); margin-top: 4px; }
+    </style>
+  </head>
+  <body>
+    <header class="dash-header">
+      <a class="brand" href="/patient">
+        <svg
+          width="26"
+          height="26"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <rect x="2" y="2" width="20" height="20" rx="5" fill="#2f6df6" />
+          <path
+            d="M12 17.5s-4.2-2.8-4.2-5.6a2.3 2.3 0 0 1 4.2-1.3 2.3 2.3 0 0 1 4.2 1.3c0 2.8-4.2 5.6-4.2 5.6Z"
+            fill="#ffffff"
+          />
+        </svg>
+        <h1>CarePath</h1>
+      </a>
+      <div class="meta-actions">
+        <button class="icon-btn" aria-label="Notifications">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" aria-label="Settings">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="3"></circle>
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+            ></path>
+          </svg>
+        </button>
+        <div class="user-profile">
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>{{ patient_name }}</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <ul class="side-nav">
+          <li>
+            <a href="/patient">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              Dashboard</a
+            >
+          </li>
+          <li>
+            <a href="/patient/records" class="active">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                ></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              My Records</a
+            >
+          </li>
+          <li>
+            <a href="/patient/appointments">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              Appointments</a
+            >
+          </li>
+          <li>
+            <a href="/patient/prescriptions">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M12 11h4m-2-2v4m-2-7.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2.5M6 6h12v11a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V6z"
+                ></path>
+              </svg>
+              Prescriptions</a
+            >
+          </li>
+          <li>
+            <a href="/patient/messages">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                ></path>
+              </svg>
+              Messages</a
+            >
+          </li>
+          <li>
+            <a href="/patient/health">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+              </svg>
+              My Health</a
+            >
+          </li>
+        </ul>
+      </aside>
+
+      <main class="content">
+        <div class="records-head">
+          <span style="width: 120px"></span>
+          <h2 class="page-title">My Medical Records</h2>
+          <a href="#" class="btn-download" title="Coming soon">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Download All
+          </a>
+        </div>
+
+        <!-- Category filters (visual only for now; real filtering is future work) -->
+        <nav class="filter-tabs">
+          <a href="#" class="active">All</a>
+          <a href="#">Lab Results</a>
+          <a href="#">Visits</a>
+          <a href="#">Imaging</a>
+          <a href="#medical-history">Diagnoses</a>
+        </nav>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Provider</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in results %}
+            <tr>
+              <td>{{ r.date }}</td>
+              <td>{{ r.test_name }}</td>
+              <td>{{ r.provider }}</td>
+              <td>
+                <span class="status status-{{ r.status|lower }}"
+                  >{{ r.status }}</span
+                >
+              </td>
+              <td>
+                {% if r.file_name %}
+                <a
+                  class="view-link"
+                  href="/results/file/{{ r.test_id }}"
+                  target="_blank"
+                  >View / Download</a
+                >
+                {% else %}
+                <span class="no-file">Not available</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %} {% if not results %}
+            <tr>
+              <td colspan="5" class="empty">No medical records yet.</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+
+        <h2 class="section-title" id="medical-history">Medical History</h2>
+        <div class="timeline">
+          {% for r in medical_records %}
+          <div class="event event-{{ r.type|lower }}">
+            <span class="event-date">{{ r.date }}</span>
+            <span class="event-type type-{{ r.type|lower }}">{{ r.type }}</span>
+            <div class="event-detail">{{ r.description }}</div>
+            <div class="event-provider">Added by {{ r.provider }}</div>
+          </div>
+          {% endfor %}
+          {% if not medical_records %}
+          <div class="empty">No diagnoses, allergies, procedures, or notes on file yet.</div>
+          {% endif %}
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
