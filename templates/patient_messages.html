@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CarePath - Messages</title>
+    <style>
+      :root {
+        --bg: #eef1f6;
+        --card: #ffffff;
+        --ink: #1f2430;
+        --ink-soft: #5a6273;
+        --line: #d9dee8;
+        --accent: #4f46e5;
+        --accent-hover: #4338ca;
+        --field: #f6f7fb;
+        --nav-bg: #6366f1;
+        --nav-hover: #4f46e5;
+        --nav-active: #3b82f6;
+        --unread: #ef4444;
+        --bubble-mine: #4f46e5;
+        --bubble-theirs: #eef1f6;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        min-height: 100vh;
+      }
+      .dash-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--line);
+        background: var(--card);
+      }
+      .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+      .brand h1 { font-size: 1.35rem; font-weight: 700; }
+      .user-profile { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 700; }
+      .layout { display: flex; align-items: flex-start; }
+      .sidebar { width: 210px; flex-shrink: 0; padding: 24px 16px; }
+      .side-nav { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+      .side-nav a {
+        display: flex; align-items: center; gap: 12px; padding: 11px 16px;
+        border-radius: 8px; background: var(--nav-bg); color: #ffffff;
+        text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: background 0.15s;
+      }
+      .side-nav a:hover { background: var(--nav-hover); }
+      .side-nav a.active { background: var(--nav-active); }
+
+      .content { flex: 1; padding: 28px 32px; min-width: 0; }
+      .page-title { font-size: 1.4rem; margin-bottom: 20px; }
+
+      .messages-panel {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+        height: 620px;
+      }
+
+      /* Contact list */
+      .contact-list { border-right: 1px solid var(--line); overflow-y: auto; }
+      .contact {
+        display: block;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        text-decoration: none;
+        color: var(--ink);
+      }
+      .contact:hover { background: var(--field); }
+      .contact.active { background: var(--field); border-left: 3px solid var(--accent); }
+      .contact-name { font-weight: 700; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+      .contact-preview { font-size: 0.8rem; color: var(--ink-soft); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .unread-badge {
+        background: var(--unread); color: #fff; font-size: 0.7rem; font-weight: 700;
+        border-radius: 999px; padding: 1px 7px; margin-left: 6px;
+      }
+      .empty-contacts { padding: 20px; color: var(--ink-soft); font-size: 0.85rem; }
+
+      /* Thread */
+      .thread { display: flex; flex-direction: column; height: 100%; }
+      .thread-header {
+        padding: 14px 20px; border-bottom: 1px solid var(--line);
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .thread-header h3 { font-size: 1rem; }
+      .encrypted-badge {
+        font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        background: #d1fae5; color: #065f46; padding: 3px 10px; border-radius: 999px;
+      }
+      .thread-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+      .bubble-row { display: flex; }
+      .bubble-row.mine { justify-content: flex-end; }
+      .bubble {
+        max-width: 60%; padding: 9px 14px; border-radius: 14px; font-size: 0.88rem; line-height: 1.35;
+      }
+      .bubble-row.mine .bubble { background: var(--bubble-mine); color: #fff; border-bottom-right-radius: 4px; }
+      .bubble-row.theirs .bubble { background: var(--bubble-theirs); color: var(--ink); border-bottom-left-radius: 4px; }
+      .bubble-time { font-size: 0.68rem; color: var(--ink-soft); margin-top: 3px; }
+      .bubble-row.mine .bubble-time { text-align: right; }
+
+      .thread-input { border-top: 1px solid var(--line); padding: 12px 16px; display: flex; gap: 8px; }
+      .thread-input input[type="text"] {
+        flex: 1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 20px; background: var(--field); font-size: 0.9rem;
+      }
+      .thread-input button {
+        padding: 0 18px; background: var(--accent); color: #fff; border: none; border-radius: 20px; font-weight: 700; cursor: pointer;
+      }
+      .thread-input button:hover { background: var(--accent-hover); }
+
+      .no-thread { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--ink-soft); font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <header class="dash-header">
+      <a class="brand" href="/patient">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2" y="2" width="20" height="20" rx="5" fill="#2f6df6" />
+          <path d="M12 17.5s-4.2-2.8-4.2-5.6a2.3 2.3 0 0 1 4.2-1.3 2.3 2.3 0 0 1 4.2 1.3c0 2.8-4.2 5.6-4.2 5.6Z" fill="#ffffff" />
+        </svg>
+        <h1>CarePath</h1>
+      </a>
+      <div class="user-profile">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span>{{ patient_name }}</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <ul class="side-nav">
+          <li><a href="/patient">Dashboard</a></li>
+          <li><a href="/patient/records">My Records</a></li>
+          <li><a href="/patient/appointments">Appointments</a></li>
+          <li><a href="/patient/prescriptions">Prescriptions</a></li>
+          <li><a href="/patient/messages" class="active">Messages</a></li>
+          <li><a href="/patient/health">My Health</a></li>
+        </ul>
+      </aside>
+
+      <main class="content">
+        <h2 class="page-title">Messages</h2>
+
+        <div class="messages-panel">
+          <div class="contact-list">
+            {% for c in contacts %}
+            <a href="/patient/messages/{{ c.id }}" class="contact {% if c.id == active_contact_id %}active{% endif %}">
+              <div class="contact-name">
+                <span>Dr. {{ c.first_name }} {{ c.last_name }}</span>
+                {% if c.unread_count %}<span class="unread-badge">{{ c.unread_count }}</span>{% endif %}
+              </div>
+              <div class="contact-preview">
+                {% if c.last_message %}{{ c.last_message }}{% else %}No messages yet{% endif %}
+              </div>
+            </a>
+            {% endfor %}
+            {% if not contacts %}
+            <div class="empty-contacts">No professionals on your care team yet.</div>
+            {% endif %}
+          </div>
+
+          <div class="thread">
+            {% if active_contact %}
+            <div class="thread-header">
+              <h3>Dr. {{ active_contact.first_name }} {{ active_contact.last_name }}</h3>
+              <span class="encrypted-badge">Encrypted</span>
+            </div>
+            <div class="thread-body" id="threadBody">
+              {% for m in messages %}
+              <div class="bubble-row {% if m.sender_id == current_user_id %}mine{% else %}theirs{% endif %}">
+                <div>
+                  <div class="bubble">{{ m.text }}</div>
+                  <div class="bubble-time">{{ m.sent_time }}</div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <form class="thread-input" method="POST" action="/patient/messages/{{ active_contact.id }}/send">
+              <input type="text" name="message_text" placeholder="Type a secure message..." autocomplete="off" required />
+              <button type="submit">Send</button>
+            </form>
+            {% else %}
+            <div class="no-thread">Select a conversation to view messages.</div>
+            {% endif %}
+          </div>
+        </div>
+      </main>
+    </div>
+    <script>
+      var body = document.getElementById("threadBody");
+      if (body) { body.scrollTop = body.scrollHeight; }
+    </script>
+  </body>
+</html>

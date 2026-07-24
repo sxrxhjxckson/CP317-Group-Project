@@ -12,9 +12,17 @@
             --ink-soft: #5a6273;
             --line: #d9dee8;
             --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --field: #f6f7fb;
             --presc: #4f46e5;
             --result: #0891b2;
             --appt: #d97706;
+            --diagnosis: #b91c1c;
+            --allergy: #c2410c;
+            --procedure: #6d28d9;
+            --note: #4b5563;
+            --danger: #b42318;
+            --danger-soft: #fde7e6;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -79,6 +87,10 @@
         .event-prescription::before { background: var(--presc); }
         .event-testresult::before  { background: var(--result); }
         .event-appointment::before { background: var(--appt); }
+        .event-diagnosis::before   { background: var(--diagnosis); }
+        .event-allergy::before     { background: var(--allergy); }
+        .event-procedure::before   { background: var(--procedure); }
+        .event-note::before        { background: var(--note); }
 
         .event-type {
             display: inline-block;
@@ -93,10 +105,63 @@
         .type-prescription { background: #ede9fe; color: var(--presc); }
         .type-testresult  { background: #cffafe; color: var(--result); }
         .type-appointment { background: #fef3c7; color: var(--appt); }
+        .type-diagnosis   { background: #fee2e2; color: var(--diagnosis); }
+        .type-allergy     { background: #ffedd5; color: var(--allergy); }
+        .type-procedure   { background: #ede9fe; color: var(--procedure); }
+        .type-note        { background: #f3f4f6; color: var(--note); }
 
         .event-date { float: right; font-size: 0.8rem; color: var(--ink-soft); }
         .event-detail { font-size: 0.95rem; margin-top: 2px; }
         .empty { padding: 40px; text-align: center; color: var(--ink-soft); }
+
+        .banner {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: var(--danger-soft);
+            color: var(--danger);
+            border: 1px solid #fbd5d2;
+        }
+        .add-record-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 18px 20px;
+            margin-bottom: 24px;
+        }
+        .add-record-card h3 { font-size: 1rem; margin-bottom: 14px; }
+        .form-row { display: flex; gap: 12px; margin-bottom: 12px; }
+        .form-group { flex: 1; }
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            margin-bottom: 5px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid var(--line);
+            border-radius: 5px;
+            background: var(--field);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        textarea.form-control { resize: vertical; min-height: 60px; }
+        .btn-submit {
+            padding: 10px 18px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-submit:hover { background: var(--accent-hover); }
     </style>
 </head>
 <body>
@@ -111,6 +176,35 @@
     <main class="content">
         <a href="/professional" class="back-link">&larr; Back to Dashboard</a>
         <h2 class="page-title">Medical History &mdash; Patient #{{ patient_id }}</h2>
+
+        {% if record_error == 'type' %}
+        <div class="banner">Select a valid record type (Diagnosis, Allergy, Procedure, or Note).</div>
+        {% elif record_error == 'description' %}
+        <div class="banner">Enter a description before saving.</div>
+        {% endif %}
+
+        <div class="add-record-card">
+            <h3>Add to Medical History</h3>
+            <form method="POST" action="/professional/history/{{ patient_id }}/add">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="recordType">Record Type</label>
+                        <select id="recordType" name="record_type" class="form-control" required>
+                            {% for rt in record_types %}
+                            <option value="{{ rt }}">{{ rt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="recordDescription">Description</label>
+                        <textarea id="recordDescription" name="description" class="form-control" placeholder="e.g. Diagnosed with seasonal allergic rhinitis" required></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">Save Entry</button>
+            </form>
+        </div>
 
         <div class="timeline">
             {% for event in history %}
