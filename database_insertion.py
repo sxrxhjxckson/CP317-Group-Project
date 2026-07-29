@@ -14,6 +14,7 @@ patient_id_one = dbm.add_user("test_patient@test.com","password","Patient")
 prof_id_one = dbm.add_user("test_professional@test.com","password","Professional")
 patient_id_two = dbm.add_user("test_patient_two@test.com","password","Patient")
 prof_id_two = dbm.add_user("test_professional_two@test.com","password","Professional")
+patient_id_three = dbm.add_user("test_patient_three@test.com","password","Patient")
 
 dbm.add_patient(patient_id_one, "John","Doe","01/01/2000",123,456)
 
@@ -22,6 +23,9 @@ dbm.add_professional(prof_id_one, "Gregory", "House", "6767")
 dbm.add_patient(patient_id_two, "Jane","Doe","10/01/2005",456,123)
 
 dbm.add_professional(prof_id_two, "Kyle", "Smith", "6969")
+
+dbm.add_patient(patient_id_three, "Sarah","Khan","04/26/1992",612,345)
+
 
 dbm.add_medication("Pills", "The good stuff", "Once daily")
 
@@ -40,6 +44,13 @@ dbm.add_test_result(patient_id_two,prof_id_two,"Test results", "28/06/2026","Pen
 dbm.add_appointement(patient_id_two,prof_id_two,"28/06/2026","10:0","Confirmed", "These are the notes")
 
 dbm.add_message(patient_id_one, prof_id_one, "This is a test message", sent_time="2024-05-08 14:35:29.123")
+
+dbm.add_appointement(patient_id_three,prof_id_one,"26/06/2026","10:00","Confirmed", "These are the notes")
+
+dbm.add_prescription(patient_id_three,prof_id_one,1,"test dosage", "27/03/2026","26/07/2026",1)
+
+dbm.add_test_result(patient_id_three,prof_id_one,"Test test results", "26/06/2026","Pending","These are the comments")
+
 
 dbm.add_vital(
     patient_id_one,

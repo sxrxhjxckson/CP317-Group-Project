@@ -78,23 +78,39 @@ def login():
 # Restricted to patients actually assigned to this professional - this was
 # previously missing (flagged in Sprint 2 testing: any patient ID in the
 # URL would load, regardless of who the professional actually treats).
-@app.route("/professional/history/<int:patient_id>")
-def patient_history(patient_id):
+@app.route("/professional/history")
+def patient_history(patient_id=None):
     if current_user_type != "Professional":
         return "Error: User is not a Professional", 403
+    patients = dbm.get_patients_by_professional(current_user_id)
 
-    allowed_ids = [p["id"] for p in dbm.get_patients_by_professional(current_user_id)]
-    if patient_id not in allowed_ids:
-        return "Unauthorized Access: This patient is not assigned to you.", 403
+    patient_search = request.args.get("patient_search", "").strip().lower()
+    if patient_search:
+        patients = [
+            p for p in patients
+            if patient_search in p["first_name"].lower() or patient_search in p["last_name"].lower()
+        ]
 
-    history = dbm.get_patient_history(patient_id)
+    patient_id = request.args.get("patient_id", type=int)
+    history = []
+
+    if patient_id:
+        allowed_ids = [p["id"] for p in dbm.get_patients_by_professional(current_user_id)]
+        if patient_id not in allowed_ids:
+            return "Unauthorized Access: This patient is not assigned to you.", 403
+        history = dbm.get_patient_history(patient_id)
+
     pro_data = dbm.get_professional(current_user_id)
     full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
+
     return render_template(
         "history.html",
         professional_name=full_name,
+        patients=patients,
+        patient_search=patient_search,
         history=history,
         patient_id=patient_id,
+        selected_patient_id=patient_id,
         record_types=DatabaseManager.MEDICAL_RECORD_TYPES,
         record_error=request.args.get("error"),
     )
@@ -116,13 +132,13 @@ def add_medical_record(patient_id):
     description = request.form.get("description", "").strip()
 
     if record_type not in DatabaseManager.MEDICAL_RECORD_TYPES:
-        return redirect(f"/professional/history/{patient_id}?error=type")
+        return redirect(f"/professional/history?patient_id={patient_id}&error=type")
     if not description:
-        return redirect(f"/professional/history/{patient_id}?error=description")
+        return redirect(f"/professional/history?patient_id={patient_id}&error=description")
 
     record_date = date.today().strftime("%Y-%m-%d")
     dbm.add_medical_record(patient_id, current_user_id, record_type, description, record_date)
-    return redirect(f"/professional/history/{patient_id}")
+    return redirect(f"/professional/history?patient_id={patient_id}")
 
 
 
@@ -133,7 +149,19 @@ def patient_view():
         return "Error: User is not a Patient", 403
     pat = dbm.get_patient(current_user_id)
     patient_name = f"{pat['first_name']} {pat['last_name']}"
-    return render_template("patient_dash.html", patient_name=patient_name)
+
+    contacts = dbm.get_message_contacts_for_patient(current_user_id)
+    unread_messages_count = sum(c.get("unread_count", 0) for c in contacts)
+
+    results = dbm.get_test_results_by_patient(current_user_id)
+    test_results_count = len(results) if results else 0
+
+    test_results_summary = (
+        f"{test_results_count} report{'s' if test_results_count != 1 else ''} available"
+        if test_results_count > 0
+        else "No recent test results"
+    )
+    return render_template("patient_dash.html", patient_name=patient_name, unread_messages_count=unread_messages_count, test_results_count=test_results_count, test_results_summary=test_results_summary)
 
 
 # Patient's Medical Records page (RES-002) - lists their test results,
@@ -322,7 +350,8 @@ def patient_message_thread(professional_id):
         active_contact_id=professional_id,
         active_contact=active_contact,
         messages=messages,
-        current_user_id=current_user_id
+        current_user_id=current_user_id,
+        current_user_type=current_user_type
     )
 
 
@@ -387,7 +416,8 @@ def professional_message_thread(patient_id):
         active_contact_id=patient_id,
         active_contact=active_contact,
         messages=messages,
-        current_user_id=current_user_id
+        current_user_id=current_user_id,
+        current_user_type=current_user_type
     )
 
 
@@ -436,11 +466,14 @@ def professional_view():
     pro_data = dbm.get_professional(current_user_id)
     full_name = f"{pro_data['first_name']} {pro_data['last_name']}"
     patients = dbm.get_patients_by_professional(current_user_id)
+    contacts = dbm.get_message_contacts_for_professional(current_user_id)
+    unread_count = sum(c.get("unread_count", 0) for c in contacts)
     return render_template("professional_dash.html",
                            professional_name=full_name,
                            patients=patients,
                            upload_status=request.args.get("uploaded"),
-                           upload_error=request.args.get("error"))
+                           upload_error=request.args.get("error"),
+                           unread_count=unread_count)
 
 @app.route("/professional/prescriptions", methods=['GET', 'POST'])
 def professional_prescriptions():
