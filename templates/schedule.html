@@ -17,6 +17,8 @@
             --success: #10b981;
             --danger: #b42318;
             --warning: #d97706;
+            --nav-bg: #6366f1;
+            --nav-active: #3b82f6;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -27,13 +29,116 @@
         }
         .dash-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
             padding: 16px 24px;
             border-bottom: 1px solid var(--line);
             background: var(--bg);
+            position: relative;
         }
-        .dash-header h1 { font-size: 1.35rem; font-weight: 700; }
+        .brand-menu-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: inherit;
+        }
+        .brand svg {
+            display: block;
+        }
+        .brand h1 {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+        .icon-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            padding: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--ink-soft);
+            transition:
+            background 0.15s,
+            color 0.15s;
+        }
+        .icon-btn:hover {
+            background: var(--field);
+            color: var(--ink);
+        }
+        .icon-btn:focus-visible {
+            outline: 2px solid var(--accent);
+        }
+        .hamburger-btn {
+            align-self: flex-start;
+            padding: 6px 8px;
+            margin-left: -4px;
+        }
+        .meta-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-top: 4px;
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+        /* Drop down menu */
+        .sidebar-dropdown {
+            position: absolute;
+            top: 64px;
+            left: 24px;
+            width: 230px;
+            background-color: var(--nav-bg);
+            border-radius: 6px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .hidden-menu {
+            display: none;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 20px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.15s;
+        }
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        .nav-link .icon {
+            font-size: 1.15rem;
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+        }
+        .nav-link.active-page {
+            background-color: var(--nav-active);
+        }
+        /* Main Content */
         .content { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
         .back-link {
             display: inline-block;
@@ -124,11 +229,188 @@
 </head>
 <body>
     <header class="dash-header">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <rect x="2" y="2" width="20" height="20" rx="5" fill="#2f6df6"/>
-            <path d="M12 17.5s-4.2-2.8-4.2-5.6a2.3 2.3 0 0 1 4.2-1.3 2.3 2.3 0 0 1 4.2 1.3c0 2.8-4.2 5.6-4.2 5.6Z" fill="#ffffff"/>
-        </svg>
-        <h1>CarePath</h1>
+      <div class="brand-menu-container">
+        <div class="brand">
+          <svg
+            width="26"
+            height="26"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <rect x="2" y="2" width="20" height="20" rx="5" fill="#2f6df6" />
+            <path
+              d="M12 17.5s-4.2-2.8-4.2-5.6a2.3 2.3 0 0 1 4.2-1.3 2.3 2.3 0 0 1 4.2 1.3c0 2.8-4.2 5.6-4.2 5.6Z"
+              fill="#ffffff"
+            />
+          </svg>
+          <h1>CarePath</h1>
+        </div>
+        <button
+          class="icon-btn hamburger-btn"
+          id="hamburgerMenuTrigger"
+          aria-label="Toggle Navigation Menu"
+          onclick="toggleNavigationMenu()"
+        >
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="meta-actions">
+        <button class="icon-btn" aria-label="View Notifications">
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+        </button>
+        <div class="user-profile">
+          <span>Dr. {{ professional_name }}</span>
+          <button class="icon-btn" aria-label="user Account Menu">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div id="sidebarDropdownMenu" class="sidebar-dropdown hidden-menu">
+        <a href="/professional" class="nav-link">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          Dashboard
+        </a>
+        <a href="/professional/history" class="nav-link">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 02 2h12a2 2 0 0 02-2V8z"
+            ></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          Patient Records
+        </a>
+        <a href="/professional/schedule" class="nav-link active-page">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          Schedule
+        </a>
+        <a href="/professional/prescriptions" class="nav-link">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M12 11h4m-2-2v4m-2-7.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2.5M6 6h12v11a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V6z"
+            ></path>
+          </svg>
+          Prescriptions
+        </a>
+        <a href="/professional/analytics" class="nav-link">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          Analytics
+        </a>
+        <a href="/professional/messages" class="nav-link">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            ></path>
+          </svg>
+          Messages
+        </a>
+      </div>
     </header>
 
     <main class="content">
@@ -186,5 +468,22 @@
             </table>
         </div>
     </main>
+    <script>
+        function toggleNavigationMenu() {
+            var menu = document.getElementById("sidebarDropdownMenu");
+            if (menu.classList.contains("hidden-menu")) {
+            menu.classList.remove("hidden-menu");
+            } else {
+            menu.classList.add("hidden-menu");
+            }
+        }
+        window.onclick = function (event) {
+            var menu = document.getElementById("sidebarDropdownMenu");
+            var button = document.getElementById("hamburgerMenuTrigger");
+            if (!button.contains(event.target) && !menu.contains(event.target)) {
+            menu.classList.add("hidden-menu");
+            }
+        };
+    </script>
 </body>
 </html>

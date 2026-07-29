@@ -20,6 +20,7 @@
         --danger-soft: #fde7e6;
         --nav-bg: #6366f1;
         --nav-active: #3b82f6;
+        --unread: #ef4444;
       }
       * {
         box-sizing: border-box;
@@ -163,6 +164,32 @@
         text-transform: uppercase;
       }
 
+      /* Unread Messages Card Styling */
+      .msg-card-body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+      }
+      .unread-count-display {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 4px 0;
+      }
+      .unread-badge-num {
+        background: var(--unread);
+        color: #ffffff;
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 12px;
+      }
+
       /* Items list inside panels */
       .item-list {
         list-style: none;
@@ -180,6 +207,10 @@
         display: block;
         margin-top: 8px;
         text-align: center;
+        font-weight: 600;
+      }
+      .item-list a:hover, .panel-card a.card-link:hover {
+        text-decoration: underline;
       }
       /* Bottom row split layout */
       .bottom-row {
@@ -411,7 +442,7 @@
           </svg>
           Dashboard
         </a>
-        <a href="/professional/patient-records" class="nav-link">
+        <a href="/professional/history" class="nav-link">
           <svg
             width="20"
             height="20"
@@ -533,15 +564,13 @@
         <!-- Col 3 -->
         <div class="panel-card">
           <h3>Messages</h3>
-          <p style="font-size: 0.9rem; font-weight: bold; margin: 8px 0">
-            Unread Messages
-          </p>
-          <ul
-            class="item-list"
-            style="font-size: 0.85rem; color: var(--ink-soft)"
-          >
-            <a href="#">Open Inbox &gt;</a>
-          </ul>
+          <div class="msg-card-body">
+            <div class="unread-count-display">
+              <span>Unread Messages:</span>
+              <span class="unread-badge-num">{{ unread_count if unread_count is defined else 0 }}</span>
+            </div>
+          </div>
+          <a href="/professional/messages" class="card-link">Open Inbox &gt;</a>
         </div>
       </div>
       <!-- Bottom Row Section -->
@@ -619,7 +648,7 @@
             {% for patient in patients %}
             <li>
               <a
-                href="/professional/history/{{ patient.id }}"
+                href="/professional/history?patient_id={{ patient.id }}"
                 style="display: inline; margin: 0; text-align: left"
               >
                 {{ patient.first_name }} {{ patient.last_name }} &rarr; View

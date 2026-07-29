@@ -1,6 +1,6 @@
 import sqlite3
 from cryptography.fernet import Fernet
-
+from datetime import datetime, timezone
 # COM-001 - Secure Messaging: symmetric key used to encrypt Message_Text at
 # rest, so raw message content is never stored as plain text in the .db file.
 # NOTE: in a real deployment this key would come from an environment
@@ -331,16 +331,13 @@ class DatabaseManager():
 
         encrypted_text = _fernet.encrypt(text.encode()).decode()
 
-        if sent_time:
-            cursor.execute("""
-            INSERT OR IGNORE INTO MESSAGES (Sender_Id, Receiver_Id, Sent_Time, Message_Text)
-            VALUES (?,?,?,?)
-            """, (sender_id, receiver_id, sent_time, encrypted_text))
-        else:
-            cursor.execute("""
-            INSERT OR IGNORE INTO MESSAGES (Sender_Id, Receiver_Id, Message_Text)
-            VALUES (?,?,?)
-            """, (sender_id, receiver_id, encrypted_text))
+        if not sent_time:
+            sent_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+
+        cursor.execute("""
+        INSERT OR IGNORE INTO MESSAGES (Sender_Id, Receiver_Id, Sent_Time, Message_Text)
+        VALUES (?,?,?,?)
+        """, (sender_id, receiver_id, sent_time, encrypted_text))
 
         conn.commit()
         conn.close()
@@ -801,9 +798,19 @@ class DatabaseManager():
                 text = _fernet.decrypt(r[4].encode()).decode()
             except Exception:
                 text = "[Unable to decrypt message]"
+            raw_time = r[3]
+            formatted_time = raw_time
+            if raw_time:
+                for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S %f"):
+                    try:
+                        dt = datetime.strptime(raw_time, fmt)
+                        formatted_time = dt.strftime("%Y-%m-%d %I:%M %p")
+                        break
+                    except ValueError:
+                        pass
             messages.append({
                 'id': r[0], 'sender_id': r[1], 'receiver_id': r[2],
-                'sent_time': r[3], 'text': text
+                'sent_time': formatted_time, 'text': text
             })
         return messages
 
